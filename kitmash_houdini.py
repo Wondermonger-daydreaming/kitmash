@@ -284,6 +284,57 @@ def write_part_geo(geo, part):
         geo.setGlobalAttribValue(nm, val)
 
 
+def rehydrate_to_geo(geo, keep_decisions=False):
+    """The HEADLESS rehydrator (CI/smoke path — the For-Each + part-HDA
+    network in ASSEMBLER-SOP.md is the artist path). Reads placement
+    points (group `placements`) from a geometry the assembler SOP wrote,
+    regenerates every part via rehydrate() — same code gate 7 proves —
+    transforms it by the point's orient/P, and writes the bodies as
+    faction-colored polygons. Adapter collars are baked too (single
+    points can't ride a downstream PolyWire). Strut segments and hose
+    curves are left as curves for wiring/sweeping downstream. Decision
+    points are consumed unless keep_decisions=True."""
+    import hou
+    place = [pt for pt in geo.pointGroup("placements").points()]
+    collars = [pt for pt in geo.pointGroup("collars").points()]
+    geo.addAttrib(hou.attribType.Prim, "Cd", (1.0, 1.0, 1.0))
+    geo.addAttrib(hou.attribType.Prim, "part_id", "")
+
+    def bake(verts, faces, color, pid):
+        rgb = _hex_rgb(color)
+        pts = []
+        for pos in verts:
+            p = geo.createPoint()
+            p.setPosition(hou.Vector3([float(x) for x in pos]))
+            pts.append(p)
+        for tri in faces:
+            poly = geo.createPolygon()
+            for k in tri:
+                poly.addVertex(pts[k])
+            poly.setAttribValue("Cd", rgb)
+            poly.setAttribValue("part_id", pid)
+
+    for pt in place:
+        rec = {k: pt.attribValue(k) for k in
+               ("family", "generator", "gen_params", "faction", "part_id")}
+        rec["orient"] = list(pt.attribValue("orient"))
+        rec["P"] = list(pt.position())
+        part, R, t = rehydrate(rec)
+        for v, f, c in part.meshes:
+            bake(np.asarray(v) @ R.T + t, f, c, rec["part_id"])
+
+    for pt in collars:
+        fc = FACTIONS[geo.attribValue("faction")]
+        v, f = km.cyl(pt.attribValue("r"), pt.attribValue("r"), 0.1, seg=8)
+        R = km.frame(np.array(pt.attribValue("N")),
+                     np.array(pt.attribValue("up")))
+        bake(np.asarray(v) @ R.T + np.array(list(pt.position())), f,
+             fc["accent"], "collar/" + pt.attribValue("owner"))
+
+    if not keep_decisions:
+        geo.deletePoints(place + collars)
+
+
 def write_geo(geo, a, name="", plate=""):
     """Write a finished assembly onto a hou.Geometry as decisions:
     placement points (group `placements`), strut segments (prim group
