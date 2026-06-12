@@ -309,10 +309,44 @@ re-pin or drop the check once the download completes).
   convertline-before-resample for per-span catenary; p-clips on the nodes
   the router paid for; per-ctype Cd closes the viewer's one-style cheat.
 
-First session with Houdini installed: run `install_houdini.sh`, then
-`hython houdini/make_tank_hda.py && hython houdini/verify_tank_hda.py`,
-then the smoke test in ASSEMBLER-SOP.md. Expect hou-API goblins in
-make_tank_hda.py (written blind; flagged); fix there, not in the contract.
+Beyond the three decided deliverables, same session:
+
+- **Wrapper HDAs for all 11 families** (`houdini/make_part_hdas.py` +
+  `kitmash_houdini.write_part_geo`): one `kitmash::part_<family>::1.0`
+  per registry family, interior = Python SOP calling the family's own
+  generator — round trip by construction, day-one full-fleet rehydration.
+  Artists migrate interiors per-family via the kitmash_part_tank.md
+  pattern. write_part_geo verified host-agnostically (stub hou) for all
+  11 families × both factions.
+- **Headless rehydrator** (`kitmash_houdini.rehydrate_to_geo`): CI/smoke
+  path needing no HDAs — placement points → baked faction-colored polys
+  (part_id provenance; collars namespaced `collar/<owner>`), strut/hose
+  curves passed through for PolyWire/Sweep. Full pipeline
+  (write_geo → rehydrate_to_geo) stub-proven: GS-α 608 + FV-ε 620 part
+  tris geometry-matched against the assembler's world meshes.
+- **One-call demo scene** (`houdini/make_ship_hip.py`): assembler SOP
+  (spare parms = the brief) → rehydrate → polywire struts → polywire
+  hoses, cooked and saved as .hip.
+- **`houdini/test_headless.py`**: 8-gate hython integration suite
+  (started by the installer instance; API mismatches fixed and dry-run
+  verified outside hou).
+
+**Install status (2026-06-12 evening):** Houdini 21.0.729 installed at
+`/opt/hfs21.0.729` (NOTE: no `/opt/hfs21.0` symlink was created — use the
+full path or make the symlink). hython launches but **no license**:
+hserver is connected to sidefx.com with no entitlement; a SideFX account
+login (Apprentice) is required — that's the human's move. The moment it
+exists, run, in order:
+```
+H=/opt/hfs21.0.729/bin/hython
+$H houdini/test_headless.py        # 8 integration gates
+$H houdini/make_part_hdas.py       # 11 wrapper part HDAs
+$H houdini/make_tank_hda.py && $H houdini/verify_tank_hda.py  # (b) gate
+$H houdini/make_ship_hip.py        # full demo scene
+```
+All hou-touching code was written blind; expect goblins in the hou API
+calls (parm names, HDA creation), fix there — the contracts and the
+host-agnostic extractors are gate-proven, don't bend them.
 
 ## Current state & known cheats
 
