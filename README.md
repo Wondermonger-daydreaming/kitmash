@@ -8,7 +8,7 @@ spaceships in the reference slice, but the schema is kingdom-agnostic.
 > The mesh is a cached opinion; the JSON is the truth.
 
 ![KitMash fleet viewer](https://img.shields.io/badge/deps-numpy_only-blue)
-![tests](https://img.shields.io/badge/gates-3%2F3_passing-brightgreen)
+![tests](https://img.shields.io/badge/gates-6%2F6_passing-brightgreen)
 
 ## What it does
 
@@ -23,8 +23,14 @@ they become *form*, with a recorded reason:
 | Bending moment over joint capacity | strut (relief measured by brace geometry) |
 | Two parts want the same emptiness | **auction** — bid = prio × score × scarcity |
 | Every candidate dies on the same blocker | **conflict-directed backjump** (bounded, traced) |
+| Channel out of capacity, no alternative | **rip-up-and-reroute** — the squatter is evicted and reroutes |
+| Fuel and high-voltage in one channel | never — the segregation matrix prunes it at graph build |
 | Unmet fuel demand | a cold, scavenged engine — not an error |
 | Unfilled port | blanking cap (guild) or left open, taped (feral) |
+
+Hoses route over a **channel graph** with real capacity reservation, and a
+channel already carrying a compatible hose costs 0.55× for the next one —
+the **loom discount**: harnesses emerge from economics, not authoring.
 
 Every decision appends to an `assembly_trace`. Replay the trace and you get
 the identical ship; perturb it and you get a counterfactual sibling.
@@ -53,6 +59,7 @@ shaped the hull.
 | GS-β «Heavier Daughter» | High Guild | α's mutant child — heavier cannons starve her sensors at 99.7% of mass budget |
 | FV-γ «Tape Holds» | Feral | safety factor 1.1, debt tolerated, ports left open |
 | FV-δ «Cold Shoulder» | Feral | carries a clearance-hogging radiator that loses four auctions, honestly |
+| FV-ε «Loom» | Feral | electrified: a reactor feeds two turrets; the second feed rides the first one's channel because the loom made it cheapest, and neither may touch the fuel trunk |
 
 ## Doctrine (the part that matters)
 
@@ -76,7 +83,7 @@ solver, A* hose routing), hard-won lessons, and roadmap live in
 - [x] v0.4 — engine-room hardening (transactional placement, true tree-fold
       spine, measured strut relief) — driven by convergent cross-model review
 - [x] v0.5 — clearance auctions + conflict-directed backjumping
-- [ ] Routing v2 — channel capacity reservation, congestion rip-up,
+- [x] v0.6 — Routing v2: channel capacity reservation, congestion rip-up,
       segregation enforcement, the loom discount
 - [ ] Anchorable-surface semantics for struts
 - [ ] USD export (`kitmash:` namespaced primvars)

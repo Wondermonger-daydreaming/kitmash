@@ -1,16 +1,24 @@
-"""KitMash v0.5 tests — every new code path must leave a trace.
+"""KitMash v0.6 tests — every new code path must leave a trace.
 
-Three gates:
-  1. fleet regression — GS-α reproduces the handoff numbers exactly
+Six gates:
+  1. fleet regression — GS-α reproduces the handoff numbers exactly,
+     including the hose path (geometric identity, not just stats)
   2. auction win + eviction — rigged hub where a high-value challenger
      takes a low-value incumbent's clearance, exercising uncommit fully
   3. backjump — rigged hub where every candidate dies on the same blocker;
      the bounded ping-pong must terminate with a consistent ledger
+  4. segregation — a high-volt net refuses the cheap fuel trunk and pays
+     for the long way around
+  5. loom — the second compatible net rides the first one's channel
+     because the discount makes it cheapest
+  6. capacity + rip-up — a wider bundle evicts a squatter from a narrow
+     channel; the victim reroutes via its expensive alternative
 
 Run: python3 test_kitmash.py
 """
 import numpy as np
-from kitmash import (Assembler, Part, Port, box, GUILD, build, gen_hull)
+from kitmash import (Assembler, Part, Port, Grommet, box, GUILD, build,
+                     gen_hull, seg_share_ok)
 
 TESTF = dict(name="TestF", era=1, hull="#888888", accent="#aa6633",
              dark="#444444", glow="#88ccff", safety_factor=1.1,
@@ -87,6 +95,9 @@ def no_hard_overlaps(a):
 
 
 # ------------------------------------------------------------------- tests
+GOLDEN_ALPHA_HOSE = [[1.8, 0.0, 1.0], [1.0, 0.0, 0.75], [-1.0, 0.0, 0.75],
+                     [-3.2, 0.0, 0.75], [-3.7, 0.0, 0.3]]
+
 def test_fleet_regression():
     A = build(GUILD, 7, {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
                          "heavy_cannon": 1.4, "antenna": 0.8,
@@ -94,7 +105,10 @@ def test_fleet_regression():
     stats = (len(A.placed), int(sum(p.mass for p in A.placed)),
              len(A.struts))
     assert stats == (10, 9464, 3), f"GS-α regression broke: {stats}"
-    print("PASS  fleet regression (GS-α = 10 parts / 9464 kg / 3 struts)")
+    assert len(A.hoses) == 1, "GS-α hose count changed"
+    pts = [[round(x, 3) for x in pt] for pt in A.hoses[0]["pts"]]
+    assert pts == GOLDEN_ALPHA_HOSE, f"GS-α hose path drifted: {pts}"
+    print("PASS  fleet regression (GS-α = 10/9464/3, hose path golden)")
 
 
 def test_auction_win_and_evict():
@@ -139,8 +153,109 @@ def test_backjump():
           f"{bj[0]['conflict_set']}, survivor={labels})")
 
 
+# ------------------------------------------------------ routing v2 rigs
+def rig_part(label, pos, groms, gedges=(), supplies=(), demands=()):
+    """Fabricate an already-placed part: world grommets only."""
+    p = Part(label, {}, mass=10, silhouette=0.1, faction="TestF", era=1,
+             color="#888", label=label)
+    p.wgrom = [(np.array(pos, float) + np.array(gp, float),
+                Grommet(gp, ct, size)) for gp, ct, size in groms]
+    p.gedges = list(gedges)
+    p.supplies = [list(x) for x in supplies]
+    p.demands = [list(x) for x in demands]
+    return p
+
+
+def rig_route(parts):
+    a = Assembler(TESTF, 1, dict(design_g=2.5, wants={},
+                                 budgets=dict(mass=1, silhouette=1, parts=1)),
+                  [])
+    a.placed = list(parts)
+    a.route()
+    return a
+
+
+def test_segregation():
+    # A fuel bus sits exactly on the cheap straight line between a high-volt
+    # supply and demand. Forbidden pair: the HV net must pay for the leap.
+    layout = lambda ct: [
+        rig_part("S", [0, 0, 0], [([0, 0, 0], ct, 0.2)],
+                 supplies=[(ct, 1.0)]),
+        rig_part("BUS", [0, 0, 0], [([1, 0, 0], "fuel", 0.2),
+                                    ([2, 0, 0], "fuel", 0.2),
+                                    ([3, 0, 0], "fuel", 0.2)],
+                 gedges=[(0, 1), (1, 2)]),
+        rig_part("D", [4, 0, 0], [([0, 0, 0], ct, 0.2)],
+                 demands=[(ct, 1.0)])]
+    hv = rig_route(layout("high_volt"))
+    assert len(hv.hoses) == 1, "HV net failed to route"
+    assert len(hv.hoses[0]["pts"]) == 2, \
+        f"HV net rode the fuel bus: {hv.hoses[0]['pts']}"
+    cg = [e for e in hv.trace if e["ev"] == "channel_graph"]
+    assert cg and cg[0]["metrics"]["seg_pruned"] >= 6, "no pruning recorded"
+    # control: coolant is friendly with fuel — it SHOULD ride the bus
+    co = rig_route(layout("coolant"))
+    assert len(co.hoses[0]["pts"]) == 5, \
+        f"coolant refused the friendly bus: {co.hoses[0]['pts']}"
+    print(f"PASS  segregation (HV pays the leap, "
+          f"{cg[0]['metrics']['seg_pruned']} edges pruned; coolant rides)")
+
+
+def test_loom():
+    # Second compatible net prefers the discounted channel through D1's
+    # grommet over its own slightly-shorter virgin leap.
+    a = rig_route([
+        rig_part("S", [0, 0, 0], [([0, 0, 0], "high_volt", 0.2)],
+                 supplies=[("high_volt", 4.0)]),
+        rig_part("D1", [3, 0, 0], [([0, 0, 0], "high_volt", 0.1)],
+                 demands=[("high_volt", 1.0)]),
+        rig_part("D2", [3, 1, 0], [([0, 0, 0], "high_volt", 0.1)],
+                 demands=[("high_volt", 1.0)])])
+    assert len(a.hoses) == 2, "loom rig failed to route both nets"
+    h2 = [e for e in a.trace if e["ev"] == "hose"][1]
+    assert h2["metrics"].get("loomed") == 1, f"no loom: {h2['metrics']}"
+    assert [3.0, 0.0, 0.0] in a.hoses[1]["pts"], "net2 skipped the harness"
+    print("PASS  loom (net2 rides net1's channel at 0.55x, loomed=1)")
+
+
+def test_capacity_ripup():
+    # Narrow bridge is the only channel wide enough for net2; net1 (thin)
+    # squats it first. Net2 has NO capacity-legal path (the bypass carries
+    # only 0.039 — enough for net1's 0.035, not net2's 0.040), so it must
+    # rip net1 out; net1 reroutes via the thin bypass it still fits.
+    a = rig_route([
+        rig_part("S", [0, 0, 0], [([0, 0, 0], "high_volt", 0.2)],
+                 supplies=[("high_volt", 10.0)]),
+        rig_part("NARROW", [0, 0, 0], [([2.0, 0, 0], "high_volt", 0.06),
+                                       ([4.6, 0, 0], "high_volt", 0.06)],
+                 gedges=[(0, 1)]),
+        rig_part("BYPASS", [0, 0, 0], [([2.0, 2.6, 0], "high_volt", 0.039),
+                                       ([4.6, 2.6, 0], "high_volt", 0.039)],
+                 gedges=[(0, 1)]),
+        rig_part("D1", [6.3, 0, 0], [([0, 0, 0], "high_volt", 0.1)],
+                 demands=[("high_volt", 1.0)]),     # dia 0.035
+        rig_part("D2", [6.3, 1, 0], [([0, 0, 0], "high_volt", 0.1)],
+                 demands=[("high_volt", 1.5)])])    # dia 0.040
+    rips = [e for e in a.trace if e["ev"] == "rip_up"]
+    assert rips and rips[0]["victim"] == "D1", f"no rip_up: {rips}"
+    assert rips[0]["cause"] == "congestion"
+    assert len(a.hoses) == 2, "a net was lost in the negotiation"
+    hoses = [e for e in a.trace if e["ev"] == "hose"]
+    assert any(h["metrics"].get("rerouted") for h in hoses), \
+        "victim's reroute not marked"
+    rer = [h for h in hoses if h["metrics"].get("rerouted")][0]
+    assert a.ripups_left == 3, "rip budget not spent"
+    unmet = [e for e in a.trace if e["ev"] == "demand_unmet"]
+    assert not unmet, f"negotiation starved a net: {unmet}"
+    print(f"PASS  capacity + rip-up (D2 evicts D1 from the narrow channel; "
+          f"D1 reroutes, {rer['metrics']['hops']} hop direct)")
+
+
 if __name__ == "__main__":
     test_fleet_regression()
     test_auction_win_and_evict()
     test_backjump()
+    test_segregation()
+    test_loom()
+    test_capacity_ripup()
     print("ALL GATES PASS")

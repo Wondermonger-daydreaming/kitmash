@@ -227,24 +227,68 @@ challenger has yet outbid an incumbent (correct at this density, but tune
 scarcity/entrenchment when part counts grow, per doctrine in the scorer
 spirit — descriptive, never the objective).
 
+## v0.6 — Routing v2: channels, congestion, segregation, the loom (2026-06-12)
+
+Roadmap item 2, implemented and trace-verified:
+
+- **Channel graph replaces the ctype-partitioned grommet graph.** Edges are
+  channels with real capacity (min endpoint `conduit_size`), occupancy
+  lists, and native conduit types. A hose reserves bundle diameter
+  (`0.025 + 0.01 x rate`) on every channel it rides.
+- **Segregation matrix enforced twice**: forbidden-pair proximity edges are
+  never built (pruned and counted in the `channel_graph` event), and A*
+  admission checks native types + occupants per net. fuel x high_volt never
+  share; optical x high_volt separate bundles (node crossing OK); coolant
+  friendly with all. The 20cm parallel-run minimum is cartooned as
+  no-share — geometric min-distance between distinct channels is not built.
+- **The loom discount**: 0.55x on channels already carrying a compatible
+  hose, until capacity is spent. Harnesses emerge from economics — hose
+  events log `loomed` edge counts. FV-ε's second turret feed demonstrates
+  it live.
+- **Congestion rip-up (EDA-style, bounded)**: a net with no capacity-legal
+  path finds its relaxed path, evicts the squatters on the over-subscribed
+  channels (`rip_up` events, max 4 per ship), routes, and the victims
+  reroute with no second rip (`rerouted: true`, or `demand_unmet
+  cause=congestion`). Lesson from rigging the test: the proximity graph is
+  DENSE — nets detour around congestion far more often than you predict,
+  which is the mechanism working, not failing.
+- **Multi-conduit fleet**: `gen_reactor` (supplies high_volt, 4.0) and
+  `gen_turret` (demands 1.8); **FV-ε «Loom»** (Plate LI, feral, seed 101,
+  swept 100–159 for a live loom) carries 1 reactor + 2 turrets: 3 hoses,
+  46 segregation-pruned edges, loomed=1 on the second feed.
+- **Regression policy amended** (deliberately): byte-identity is retired in
+  favor of **geometric + stats + hose-path identity** for prior ships;
+  trace events and JSON fields may be ADDED, never changed. Verified for
+  α/β/γ/δ this round (meshes, hose pts, stats identical; traces strict
+  supersets). Additive this round: hose `ctype`/`dia` in export, schema
+  bumped to `kitmash/0.6`, `channel_graph` event (multi-conduit ships
+  only). The hose-path golden lives in the regression gate.
+
+`test_kitmash.py` now has six gates: regression (incl. hose-path golden),
+auction win + uncommit invariants, backjump, segregation (HV refuses the
+fuel bus; coolant control rides it), loom, capacity + rip-up.
+
 ## Current state & known cheats
 
-`kitmash.py` (v0.5) runs standalone as `python3 kitmash.py <out.json>`;
-`python3 test_kitmash.py` runs the three gates; `python3 make_viewer.py
+`kitmash.py` (v0.6) runs standalone as `python3 kitmash.py <out.json>`;
+`python3 test_kitmash.py` runs the six gates; `python3 make_viewer.py
 fleet.json` rebuilds the viewer. v0.3 is archived as `kitmash_v03.py`.
 Current fleet: GS-α (10 parts, 9464 kg, 3 struts), GS-β (8 parts, 10971 kg
 — 99.7% of budget — 6 struts incl. doubled root bracing), FV-γ (10 parts,
-4 struts), FV-δ (9 parts, 3 struts, 4 auctions), all fueled, all traces
+4 struts), FV-δ (9 parts, 3 struts, 4 auctions), FV-ε (10 parts, 3 hoses,
+loomed harness, 46 segregation prunes), all fueled, all traces
 ledger-shaped → `fleet.json` → `make_viewer.py` → `kitmash-fleet.html`
 (drag orbit, trace ticker, lineage captions).
 
 Remaining deliberate cheats: AABB-only collision (no mesh-level); strut
 anchors clip to neighbor AABBs (no anchorable-surface semantics — a strut
 could still weld to glass); strut meshes not in the reservation ledger; no
-channel capacity reservation or rip-up; no nogood learning in the backjump
-(bounded ping-pong); single conduit type routed; demand matching greedy
-(though supplies now decrement); no terminator caps on struct_M; relief model
-is a cartoon (sin-angle heuristic, no stiffness or anchor-strength terms).
+nogood learning in the backjump (bounded ping-pong); segregation
+min-distance for parallel runs cartooned as no-share; demand→supply
+matching still greedy by distance (not bipartite); rip-up victims chosen
+from the relaxed path, no global negotiation rounds; no terminator caps on
+struct_M; relief model is a cartoon (sin-angle heuristic, no stiffness or
+anchor-strength terms); viewer draws all hose ctypes in one style.
 
 ## Roadmap (priority order)
 
@@ -252,8 +296,10 @@ is a cartoon (sin-angle heuristic, no stiffness or anchor-strength terms).
 1. ~~Auction + backjumping~~ DONE in v0.5 (see above). Follow-up when part
    counts grow: nogood learning to kill the ping-pong; auction-constant
    tuning against real density.
-2. **Routing v2**: channel capacity reservation, congestion rip-up (bounded,
-   logged), segregation matrix enforcement, loom discount.
+2. ~~Routing v2~~ DONE in v0.6 (see above). Follow-up at higher density:
+   bipartite demand matching, negotiation rounds (Pathfinder history
+   costs), geometric min-distance for segregated parallel runs, per-ctype
+   hose styling in the viewer.
 3. **Anchorable surface semantics** for struts (face tags or a surface group).
 4. **USD export**: `kitmash:` namespaced primvars; the format's real test.
 5. **Houdini HDA generators** emitting schema-compliant parts (the original

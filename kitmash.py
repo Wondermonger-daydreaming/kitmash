@@ -1,4 +1,29 @@
-"""KitMash v0.5 — auction + conflict-directed backjumping (roadmap item 1).
+"""KitMash v0.6 — Routing v2: channels, congestion, segregation, the loom
+(roadmap item 2).
+
+v0.5 -> v0.6:
+  * the grommet graph becomes a CHANNEL graph: edges carry capacity
+    (min of endpoint grommet conduit_size), occupancy, and native conduit
+    types. Reservation is real: a hose consumes bundle diameter
+    (0.025 + 0.01 x rate) from every channel it rides.
+  * segregation matrix enforced at two levels: proximity edges between
+    forbidden-pair grommets are never built (pruned, counted), and a net
+    may only ride channels whose native types and current occupants it is
+    allowed to share (fuel x high_volt: never; optical x high_volt:
+    separate bundles, crossing at nodes OK; coolant: friendly with all).
+  * the LOOM DISCOUNT: a channel already carrying a compatible hose costs
+    0.55x for the next one, until capacity is spent. Harnesses emerge from
+    economics, not authoring. Hose events log `loomed` edge counts.
+  * congestion rip-up-and-reroute (EDA-style, bounded): when a net cannot
+    route under capacity, find the relaxed path, evict the squatting hoses
+    (rip_up events, cause=congestion), route, then reroute the victims —
+    who get no second rip. demand_unmet gains cause=congestion.
+  * multi-conduit fleets: gen_reactor (supplies high_volt) + gen_turret
+    (demands it); FV-epsilon «Loom» exercises the machinery live.
+  * REGRESSION POLICY (amended): geometric + stats + hose-path identity for
+    prior ships; trace events and JSON fields may be added, never changed.
+
+v0.5 — auction + conflict-directed backjumping (roadmap item 1).
 
 v0.4 -> v0.5:
   * uncommit(): transactional eviction — subtree cascade, ledger/budget/port
@@ -104,6 +129,18 @@ class Part:
 CAPACITY = {"struct_S":(2_000,15_000), "struct_M":(40_000,120_000),
             "struct_L":(900_000,2_500_000), "mount_rail":(25_000,60_000)}
 RAIL_CLUSTER_BONUS = 1.3
+
+# Segregation matrix (library-level, versioned with the schema).
+# Listed pairs may NOT share a channel; everything else is friendly.
+# "forbidden" also prunes proximity edges at graph build (never adjacent);
+# "separate" allows crossing at nodes but not co-bundling on an edge.
+# The 20cm parallel-run minimum for fuel x high_volt is cartooned as
+# no-share (geometric min-distance between distinct channels: not built).
+SEGREGATION = {frozenset(("fuel","high_volt")): "forbidden",
+               frozenset(("optical","high_volt")): "separate"}
+
+def seg_share_ok(a, b):
+    return a==b or frozenset((a,b)) not in SEGREGATION
 
 def joint_cap(ptype, cluster):
     m,a = CAPACITY[ptype]
@@ -217,6 +254,36 @@ def gen_radiator(fc, seed=0):
                    np.array([ 2.2, w/2+0.5,-0.25]))]
     return p.finalize()
 
+def gen_reactor(fc, seed=0):
+    """Auxiliary reactor pod: supplies high_volt. First grommet is the
+    supply tap (routing taps wgrom[0])."""
+    rng=random.Random(seed); h=rng.uniform(0.85,1.0)
+    p=Part("reactor",{"seed":seed,"h":round(h,2)},mass=420,silhouette=0.35,
+           faction=fc["name"],era=fc["era"],color=fc["glow"],label="reactor")
+    v,f=cyl(0.34,0.30,h,seg=10); p.add(xform(v,np.eye(3),[0,0,-h/2-0.07]),f)
+    v,f=box(0.5,0.5,0.14); p.add(xform(v,np.eye(3),[0,0,-0.07]),f,fc["dark"])
+    p.ports=[Port([0,0,0],[0,0,1],[1,0,0],"struct_S",0.30,1)]
+    p.grommets=[Grommet([0,0,-0.18],"high_volt",0.12),
+                Grommet([0.36,0,-h-0.05],"high_volt",0.12)]
+    p.gedges=[(0,1)]
+    p.supplies=[["high_volt",4.0]]
+    return p.finalize()
+
+def gen_turret(fc, seed=0):
+    """Point-defense turret: demands high_volt. Mounts any struct_S."""
+    rng=random.Random(seed); barrel=rng.uniform(0.7,0.9)
+    p=Part("turret",{"seed":seed,"barrel":round(barrel,2)},mass=170,
+           silhouette=0.3,faction=fc["name"],era=fc["era"],color=fc["dark"],
+           label="turret")
+    v,f=box(0.5,0.5,0.3); p.add(xform(v,np.eye(3),[0,0,0.2]),f)
+    v,f=cyl(0.06,0.05,barrel)
+    p.add(xform(v,frame([1,0,0.35],[0,0,1]),[barrel/2+0.2,0,0.42]),f,
+          fc["accent"])
+    p.ports=[Port([0,0,0],[0,0,-1],[1,0,0],"struct_S",0.30,1)]
+    p.grommets=[Grommet([0,0,0.12],"high_volt",0.1)]
+    p.demands=[["high_volt",1.8]]
+    return p.finalize()
+
 def gen_cap(fc, seed=0):
     p=Part("terminator_cap",{},mass=8,silhouette=0.02,faction=fc["name"],
            era=fc["era"],color=fc["dark"],label="blanking cap")
@@ -245,7 +312,7 @@ class Assembler:
         s.placed=[]; s.ledger=[]; s.clear=[]; s.struts=[]; s.hoses=[]
         s.budget=dict(brief["budgets"]); s.mass_cap0=brief["budgets"]["mass"]
         s.requeue=[]; s.backjumps_left=4; s.bj_tried=set()
-        s.tried_clusters=set()
+        s.tried_clusters=set(); s.ripups_left=4
 
     def log(s,**kw): s.trace.append(kw)
 
@@ -660,69 +727,171 @@ class Assembler:
                 best=(R,t,res)
         return best if best else (np.eye(3),np.zeros(3),9e9)
 
-    def route(s):
-        nodes=[]; owner=[]; offs={}
+    # ------------------------------------------- routing v2: channel graph
+    LOOM_DISCOUNT = 0.55
+
+    def build_channels(s):
+        """Channel graph: nodes are grommets; edges are channels with real
+        capacity (min endpoint conduit_size), occupancy, and native types.
+        Proximity edges between segregation-incompatible grommet types are
+        never built (pruned, counted)."""
+        nodes=[]; offs={}
         for p in s.placed:
             offs[id(p)]=len(nodes)
-            for wpos,g in p.wgrom: nodes.append((wpos,g.ctype)); owner.append(p)
-        E={i:[] for i in range(len(nodes))}
+            for wpos,g in p.wgrom: nodes.append((wpos,g.ctype,p,g))
+        edges=[]; adj={i:[] for i in range(len(nodes))}
+        def add(a,b,base,kind):
+            edges.append(dict(a=a,b=b,base=base,kind=kind,
+                              cap=min(nodes[a][3].size,nodes[b][3].size),
+                              used=0.0,occ=[]))
+            adj[a].append(len(edges)-1); adj[b].append(len(edges)-1)
         for p in s.placed:
             o=offs[id(p)]
             for a,b in p.gedges:
                 d=np.linalg.norm(nodes[o+a][0]-nodes[o+b][0])
-                E[o+a].append((o+b,0.2*d,"internal"))
-                E[o+b].append((o+a,0.2*d,"internal"))
+                add(o+a,o+b,0.2*d,"internal")
+        pruned=dict(seg_pruned=0,clear_pruned=0)
         for i in range(len(nodes)):
             for j in range(i+1,len(nodes)):
-                if owner[i] is owner[j] or nodes[i][1]!=nodes[j][1]: continue
+                if nodes[i][2] is nodes[j][2]: continue
                 d=np.linalg.norm(nodes[i][0]-nodes[j][0])
                 if d>4.5: continue
+                if not seg_share_ok(nodes[i][1],nodes[j][1]):
+                    pruned["seg_pruned"]+=1; continue
                 if any(seg_hits_aabb(nodes[i][0],nodes[j][0],lo,hi)
-                       for lo,hi,_ in s.clear): continue
+                       for lo,hi,_ in s.clear):
+                    pruned["clear_pruned"]+=1; continue
                 kind="leap" if d>1.2 else "jump"
-                cost=(4.0 if kind=="leap" else 1.0)*d
-                E[i].append((j,cost,kind)); E[j].append((i,cost,kind))
-        pool={}                                   # supply decrement
-        for p in s.placed:
-            for c,r in p.supplies: pool[id(p)]=[p,r]
-        dems=[(offs[id(p)]+k,p,r) for p in s.placed
-              for c,r in p.demands if c=="fuel"
-              for k,(wpos,g) in enumerate(p.wgrom) if g.ctype=="fuel"][:99]
-        seen=set()
-        for di,dp,rate in dems:
-            if dp.uid in seen: continue
-            seen.add(dp.uid)
-            live=[(k,v) for k,v in pool.items() if v[1]>=rate]
-            if not live:
-                s.log(ev="demand_unmet",part=dp.label,cause="supply_saturated")
-                continue
-            k,(sp_,rem)=min(live,key=lambda e:
-                np.linalg.norm(e[1][0].wgrom[0][0]-nodes[di][0]))
-            si=offs[id(sp_)]
-            path=s.astar(nodes,E,si,di)
-            if not path:
-                s.log(ev="demand_unmet",part=dp.label,cause="no_route"); continue
-            pool[k][1]-=rate
-            kinds=[next(kk for j,c,kk in E[a] if j==b)
-                   for a,b in zip(path,path[1:])]
-            s.hoses.append({"pts":[list(map(float,nodes[x][0])) for x in path],
-                            "kinds":kinds,"ctype":"fuel"})
-            s.log(ev="hose",frm=sp_.label,to=dp.label,
-                  metrics=dict(hops=len(path)-1,leaps=kinds.count("leap"),
-                               supply_left=round(pool[k][1],1)))
+                add(i,j,(4.0 if kind=="leap" else 1.0)*d,kind)
+        return nodes,edges,adj,offs,pruned
 
-    def astar(s,nodes,E,a,b):
+    def astar2(s,nodes,edges,adj,a,b,ctype,dia,cap_check=True):
+        """A* over channels. Admission: remaining capacity (unless relaxed),
+        native-type share rules, occupant share rules. Cost: base x loom
+        discount when a compatible hose already rides the channel."""
         import heapq
-        goal=nodes[b][0]; pq=[(0,0,a,[a])]; seen={}
+        goal=nodes[b][0]; pq=[(0.0,0.0,a,())]; best={}
         while pq:
             f,g,u,path=heapq.heappop(pq)
-            if u==b: return path
-            if u in seen and seen[u]<=g: continue
-            seen[u]=g
-            for v,c,_ in E[u]:
+            if u==b: return list(path)
+            if u in best and best[u]<=g: continue
+            best[u]=g
+            for eid in adj[u]:
+                e=edges[eid]
+                if cap_check and e["used"]+dia>e["cap"]+1e-9: continue
+                if not (seg_share_ok(ctype,nodes[e["a"]][1]) and
+                        seg_share_ok(ctype,nodes[e["b"]][1])): continue
+                if not all(seg_share_ok(ctype,oc) for oc,_,_ in e["occ"]):
+                    continue
+                v=e["b"] if e["a"]==u else e["a"]
+                c=e["base"]*(s.LOOM_DISCOUNT
+                             if any(oc==ctype for oc,_,_ in e["occ"]) else 1.0)
                 heapq.heappush(pq,(g+c+np.linalg.norm(nodes[v][0]-goal),
-                                   g+c,v,path+[v]))
+                                   g+c,v,path+(eid,)))
         return None
+
+    def release_net(s,net,edges):
+        for eid in net["path"]:
+            e=edges[eid]
+            e["occ"]=[o for o in e["occ"] if o[2] is not net]
+            e["used"]-=net["dia"]
+        s.hoses.remove(net["hose"])
+        net["path"]=None; net["hose"]=None
+
+    def commit_net(s,net,path,nodes,edges,si,src,supply_left):
+        loom=0; u=si; seq=[si]; kinds=[]
+        for eid in path:
+            e=edges[eid]
+            if any(oc==net["ctype"] for oc,_,_ in e["occ"]): loom+=1
+            e["used"]+=net["dia"]; e["occ"].append((net["ctype"],net["dia"],net))
+            kinds.append(e["kind"])
+            u=e["b"] if e["a"]==u else e["a"]; seq.append(u)
+        hose={"pts":[list(map(float,nodes[x][0])) for x in seq],
+              "kinds":kinds,"ctype":net["ctype"],"dia":net["dia"]}
+        net["path"]=list(path); net["hose"]=hose; s.hoses.append(hose)
+        m=dict(hops=len(path),leaps=kinds.count("leap"),
+               supply_left=round(supply_left,1))
+        if loom: m["loomed"]=loom
+        if net["ripped"]: m["rerouted"]=True
+        s.log(ev="hose",frm=src.label,to=net["part"].label,metrics=m)
+
+    def try_ripup(s,nodes,edges,adj,si,net):
+        """Congestion negotiation, EDA-style: find the relaxed path, evict
+        the squatters on its over-subscribed channels (bounded, logged),
+        return the victims for rerouting. Victims get no second rip."""
+        if s.ripups_left<=0: return None
+        relaxed=s.astar2(nodes,edges,adj,si,net["di"],net["ctype"],
+                         net["dia"],cap_check=False)
+        if relaxed is None: return None
+        victims=[]
+        for eid in relaxed:
+            e=edges[eid]
+            if e["used"]+net["dia"]>e["cap"]+1e-9:
+                for _,_,vn in e["occ"]:
+                    if vn not in victims: victims.append(vn)
+        if not victims or len(victims)>s.ripups_left: return None
+        for vn in victims:
+            s.ripups_left-=1; vn["ripped"]=True
+            s.release_net(vn,edges)
+            s.log(ev="rip_up",victim=vn["part"].label,
+                  instigator=net["part"].label,cause="congestion",
+                  metrics=dict(rips_left=s.ripups_left))
+        return victims
+
+    def route(s):
+        nodes,edges,adj,offs,pruned=s.build_channels()
+        ctypes=sorted({ct for _,ct,_,_ in nodes})
+        if len(ctypes)>1:
+            s.log(ev="channel_graph",metrics=dict(nodes=len(nodes),
+                  edges=len(edges),conduits=ctypes,**pruned))
+        pool={}                                   # supply decrement
+        for p in s.placed:
+            for c,r in p.supplies: pool[(id(p),c)]=[p,c,r]
+        nets=[]; seen=set()
+        for p in s.placed:
+            for c,rate in p.demands:
+                if (p.uid,c) in seen: continue
+                taps=[offs[id(p)]+k for k,(w,g) in enumerate(p.wgrom)
+                      if g.ctype==c]
+                if not taps: continue
+                seen.add((p.uid,c))
+                nets.append(dict(di=taps[0],part=p,ctype=c,rate=rate,
+                                 dia=round(0.025+0.01*rate,3),
+                                 ripped=False,path=None,hose=None,src=None))
+        queue=list(nets)
+        while queue:
+            net=queue.pop(0)
+            if net["src"] is None:
+                live=[(k,v) for k,v in pool.items()
+                      if v[1]==net["ctype"] and v[2]>=net["rate"]]
+                if not live:
+                    s.log(ev="demand_unmet",part=net["part"].label,
+                          cause="supply_saturated")
+                    continue
+                k,(sp_,_,_)=min(live,key=lambda e:np.linalg.norm(
+                    e[1][0].wgrom[0][0]-nodes[net["di"]][0]))
+                net["src"]=sp_; net["pkey"]=k
+            si=offs[id(net["src"])]
+            path=s.astar2(nodes,edges,adj,si,net["di"],net["ctype"],
+                          net["dia"])
+            if path is None and not net["ripped"]:
+                victims=s.try_ripup(nodes,edges,adj,si,net)
+                if victims:
+                    path=s.astar2(nodes,edges,adj,si,net["di"],
+                                  net["ctype"],net["dia"])
+                    queue+=victims            # they reroute after me
+            if path is None:
+                relaxed=s.astar2(nodes,edges,adj,si,net["di"],net["ctype"],
+                                 net["dia"],cap_check=False)
+                cause="congestion" if relaxed else "no_route"
+                if net["ripped"]:
+                    pool[net["pkey"]][2]+=net["rate"]   # refund the supply
+                s.log(ev="demand_unmet",part=net["part"].label,cause=cause)
+                continue
+            if not net["ripped"]:
+                pool[net["pkey"]][2]-=net["rate"]
+            s.commit_net(net,path,nodes,edges,si,net["src"],
+                         pool[net["pkey"]][2])
 
 # ----------------------------------------------------------------- factions
 GUILD=dict(name="High Guild",era=812,hull="#d8d2c4",accent="#b08d3f",
@@ -747,7 +916,7 @@ def build(faction,seed,wants,heavy=1.0,span=3.2,parent=None,mutation=None,
     return a
 
 def export(ships,path):
-    out={"schema":"kitmash/0.4","ships":[]}
+    out={"schema":"kitmash/0.6","ships":[]}
     for name,a,offset,plate in ships:
         meshes=[]
         for p in a.placed:
@@ -759,7 +928,9 @@ def export(ships,path):
                            "f":[list(t) for t in f],"c":c,"label":"strut/adapter"})
         hoses=[{"pts":[[round(x+o,3) for x,o in zip(pt,offset)]
                        for pt in h["pts"]],
-                "kinds":h["kinds"],"style":a.fc["hose"]} for h in a.hoses]
+                "kinds":h["kinds"],"style":a.fc["hose"],
+                "ctype":h.get("ctype","fuel"),"dia":h.get("dia",0.037)}
+               for h in a.hoses]
         out["ships"].append({"name":name,"plate":plate,
             "offset":[float(x) for x in offset],
             "faction":a.fc["name"],"era":a.fc["era"],
@@ -791,14 +962,24 @@ if __name__=="__main__":
     C=build(FERAL,23,wants_f,heavy=1.4,span=3.4)
     D=build(FERAL,41,wants_d,heavy=1.2,span=3.2,extra_gens=[gen_radiator],
             parent="FV-γ",mutation="+radiator gene, wants reshuffled")
+    # FV-ε: electrified feral — reactor supplies high_volt, turrets demand
+    # it. Exercises routing v2: channel capacities, segregation pruning
+    # (the high-volt nets may not ride the fuel trunk), the loom discount.
+    wants_e={"engine":3.0,"fuel_tank":2.5,"wing":1.6,"heavy_cannon":0.9,
+             "turret":2.6,"reactor":2.3,"sensor_pod":0.4,"antenna":0.3}
+    E=build(FERAL,101,wants_e,heavy=1.0,span=3.0,
+            extra_gens=[gen_reactor,gen_turret],
+            parent="FV-γ",mutation="+reactor/turret genes, electrified")
     data=export([("GS-α  «Lawful Mean»",A,np.array([0,-7.5,0]),"Plate XLVII"),
                  ("GS-β  «Heavier Daughter»",B,np.array([0,0,0]),"Plate XLVIII"),
                  ("FV-γ  «Tape Holds»",C,np.array([0,7.5,0]),"Plate XLIX"),
-                 ("FV-δ  «Cold Shoulder»",D,np.array([0,15,0]),"Plate L")],dest)
+                 ("FV-δ  «Cold Shoulder»",D,np.array([0,15,0]),"Plate L"),
+                 ("FV-ε  «Loom»",E,np.array([0,22.5,0]),"Plate LI")],dest)
     for sh in data["ships"]:
         print(sh["name"],sh["stats"])
         for ev in sh["trace"]:
             if ev["ev"] in ("repair","reject","adapter","debt","hose",
                             "demand_unmet","port_open","spine_fail",
-                            "auction","evict","backjump"):
+                            "auction","evict","backjump","channel_graph",
+                            "rip_up"):
                 print("   ",{k:v for k,v in ev.items() if k!="part_id"})
