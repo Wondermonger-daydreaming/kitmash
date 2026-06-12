@@ -1,6 +1,6 @@
 """KitMash v0.6 tests — every new code path must leave a trace.
 
-Seven gates:
+Eight gates:
   1. fleet regression — GS-α reproduces the handoff numbers exactly,
      including the hose path (geometric identity, not just stats)
   2. auction win + eviction — rigged hub where a high-value challenger
@@ -17,6 +17,10 @@ Seven gates:
      orient/P) rehydrate into geometry IDENTICAL to what the assembler
      placed: meshes, ports, grommets; strut/hose decisions match their
      baked counterparts. This is the part-HDA contract, proven in numpy.
+  8. anchorable surfaces — struts may only weld where the neighbor
+     declares (anchor_vols); no declaration = legacy whole-AABB. Same
+     arm, same physics: declared plate takes the weld, anchor-starved
+     hub rejects cleanly (every brace parallel, composed relief short).
 
 Run: python3 test_kitmash.py
 """
@@ -32,7 +36,7 @@ TESTF = dict(name="TestF", era=1, hull="#888888", accent="#aa6633",
 
 
 # ------------------------------------------------------------- rigged parts
-def make_hub(port_specs, mass=100.0):
+def make_hub(port_specs, mass=100.0, anchor_vols=None):
     """Hub factory: a 1m cube with adversarially arranged ports."""
     def gen(fc, seed=0):
         p = Part("test_hub", {}, mass=mass, silhouette=0.1,
@@ -40,6 +44,9 @@ def make_hub(port_specs, mass=100.0):
                  label="hub")
         v, f = box(1, 1, 1); p.add(v, f)
         p.ports = [Port(*spec[:3], **spec[3]) for spec in port_specs]
+        if anchor_vols is not None:
+            p.anchor_vols = [(np.array(lo, float), np.array(hi, float))
+                             for lo, hi in anchor_vols]
         return p.finalize()
     return gen
 
@@ -256,6 +263,58 @@ def test_capacity_ripup():
           f"D1 reroutes, {rer['metrics']['hops']} hop direct)")
 
 
+# --------------------------------------------- anchorable surfaces (gate 8)
+def gen_arm(fc, seed=0):
+    """Heavy cantilever: needs a strut on any TESTF struct_S joint
+    (M = 200kg x 24.525 x 1.0m lever = 4905 N·m > 1818 cap)."""
+    p = Part("arm", {}, mass=200, silhouette=0.1, faction=fc["name"],
+             era=fc["era"], color=fc["dark"], label="arm")
+    v, f = box(2.4, 0.3, 0.3); p.add(np.asarray(v) + [1.0, 0, 0.45], f)
+    p.ports = [Port([0, 0, 0], [0, 0, -1], [1, 0, 0], "struct_S", 0.3, 1,
+                    sym=1)]
+    p.com = np.array([1.0, 0, 0.3])
+    return p.finalize()
+
+
+def test_anchor_semantics():
+    """Roadmap 3: struts may only weld where the neighbor declares.
+    Same arm, same physics — only the anchorable declaration changes."""
+    arm_wants = {"arm": 5.0}
+    # A: legacy hub (no declaration) — whole AABB anchorable, strut lands
+    a = rigged_run([gen_arm], arm_wants, make_hub([P_TOP_S9]))
+    assert "arm" in [p.label for p in a.placed], "baseline arm not placed"
+    assert a.strut_segs and a.strut_segs[0]["vol"] == -1, \
+        "legacy anchor should report vol=-1"
+    # B: hub declares its top plate — the strut must land inside it
+    b = rigged_run([gen_arm], arm_wants,
+                   make_hub([P_TOP_S9],
+                            anchor_vols=[([-0.5, -0.5, 0.45],
+                                          [0.5, 0.5, 0.5])]))
+    assert "arm" in [p.label for p in b.placed], "declared-plate arm lost"
+    st = [s for s in b.strut_segs if s["kind"] == "strut"]
+    assert st and st[0]["vol"] == 0, "strut did not record its anchor vol"
+    bb = st[0]["b"]
+    assert -0.5 <= bb[0] <= 0.5 and -0.5 <= bb[1] <= 0.5 \
+        and 0.45 <= bb[2] <= 0.5, f"strut welded outside declared vol: {bb}"
+    # C: hub only anchorable directly beneath the com — every brace is
+    # parallel to the moment axis (relief 0.35), two compose to 0.4225M
+    # = 2072 > 1818: clean reject, arm starves. Honest constraints.
+    c = rigged_run([gen_arm], arm_wants,
+                   make_hub([P_TOP_S9],
+                            anchor_vols=[([0.8, -0.2, -0.5],
+                                          [1.2, 0.2, -0.45])]))
+    assert "arm" not in [p.label for p in c.placed], \
+        "arm placed despite anchor-starved hub"
+    rej = [e for e in c.trace if e["ev"] == "reject"
+           and e.get("cause") == "moment_over_cap"]
+    assert rej and rej[0]["result"] == "strut_insufficient", \
+        f"expected strut_insufficient reject: {rej}"
+    assert not c.strut_segs, "rejected arm left ghost strut decisions"
+    print(f"PASS  anchorable surfaces (legacy vol=-1 holds; declared plate "
+          f"weld at z={bb[2]:.2f}; anchor-starved hub rejects "
+          f"relief={rej[0]['metrics']['relief']})")
+
+
 # ------------------------------------------------- houdini bridge (gate 7)
 def test_houdini_roundtrip():
     """The part-HDA contract, proven host-agnostically: a placement record
@@ -333,5 +392,6 @@ if __name__ == "__main__":
     test_segregation()
     test_loom()
     test_capacity_ripup()
+    test_anchor_semantics()
     test_houdini_roundtrip()
     print("ALL GATES PASS")

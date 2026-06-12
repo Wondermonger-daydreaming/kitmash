@@ -348,10 +348,36 @@ All hou-touching code was written blind; expect goblins in the hou API
 calls (parm names, HDA creation), fix there — the contracts and the
 host-agnostic extractors are gate-proven, don't bend them.
 
+## v0.8 — anchorable surface semantics (roadmap item 3), 2026-06-12
+
+Struts may no longer weld to glass:
+
+- **`Part.anchor_vols`** (schema-additive): list of LOCAL AABBs where
+  struts may anchor; `None` = whole-part AABB (legacy, default — fleet
+  regression holds byte-identically). Transformed to world at commit via
+  all 8 corners (Lesson 3), stored as `w_anchor`.
+- **`propose_strut` clips to declared volumes only.** This shrinks the
+  repair-proposal space — mediation, not a new legality check. Doctrine
+  holds: legality stays at ~7 checks.
+- **Declared fragile surfaces**: engine (casing only — never the glow
+  nozzle), antenna (base box — the mast is a whip), radiator (mounting
+  block — the panel IS the glass). All leaves, never root-side anchors
+  in the canonical fleet: verified zero regression.
+- **Provenance**: strut records (`strut_segs`, trace-adjacent) carry
+  `vol` — which declared volume took the weld (−1 = legacy whole-AABB).
+  `write_part_geo` exports `anchor_vols` as a detail attr (part-HDA
+  contract: artists' replacement meshes inherit the declaration).
+- **Gate 8**: same arm, same physics, three declarations — legacy hub
+  takes the weld (vol=−1), declared top plate takes it inside the plate,
+  and an anchor-starved hub (only anchorable directly beneath the com,
+  every brace parallel to the moment axis, composed relief 0.4225M
+  short of cap) rejects cleanly with `strut_insufficient`. Honest
+  constraints produce honest starvation, again.
+
 ## Current state & known cheats
 
-`kitmash.py` (v0.7) runs standalone as `python3 kitmash.py <out.json>`;
-`python3 test_kitmash.py` runs the seven gates; `python3 make_viewer.py
+`kitmash.py` (v0.8) runs standalone as `python3 kitmash.py <out.json>`;
+`python3 test_kitmash.py` runs the eight gates; `python3 make_viewer.py
 fleet.json` rebuilds the viewer. v0.3 is archived as `kitmash_v03.py`.
 Current fleet: GS-α (10 parts, 9464 kg, 3 struts), GS-β (8 parts, 10971 kg
 — 99.7% of budget — 6 struts incl. doubled root bracing), FV-γ (10 parts,
@@ -360,9 +386,10 @@ loomed harness, 46 segregation prunes), all fueled, all traces
 ledger-shaped → `fleet.json` → `make_viewer.py` → `kitmash-fleet.html`
 (drag orbit, trace ticker, lineage captions).
 
-Remaining deliberate cheats: AABB-only collision (no mesh-level); strut
-anchors clip to neighbor AABBs (no anchorable-surface semantics — a strut
-could still weld to glass); strut meshes not in the reservation ledger; no
+Remaining deliberate cheats: AABB-only collision (no mesh-level);
+anchorable volumes are AABBs, not faces (a strut welds anywhere inside a
+declared box, with no surface-normal semantics); strut meshes not in the
+reservation ledger; no
 nogood learning in the backjump (bounded ping-pong); segregation
 min-distance for parallel runs cartooned as no-share; demand→supply
 matching still greedy by distance (not bipartite); rip-up victims chosen
@@ -380,10 +407,12 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
    bipartite demand matching, negotiation rounds (Pathfinder history
    costs), geometric min-distance for segregated parallel runs, per-ctype
    hose styling in the viewer.
-3. **Anchorable surface semantics** for struts (face tags or a surface group).
+3. ~~Anchorable surface semantics~~ DONE in v0.8 (AABB volumes; face
+   tags/surface normals remain a refinement).
 4. **USD export**: `kitmash:` namespaced primvars; the format's real test.
-5. **Houdini HDA generators** emitting schema-compliant parts (the original
-   host, arriving late — by design).
+5. ~~Houdini port~~ BUILT in v0.7 (three deliverables + wrapper HDAs +
+   headless rehydrator + demo hip); live hython verification pending a
+   SideFX license login — see the v0.7 section runlist.
 6. **Agent loop** — architecture is DECIDED, implement it as designed:
    layered, mostly outside the loop. The agent is a creative director, not a
    servo. Three surfaces: (a) **brief author** before the run — wants,

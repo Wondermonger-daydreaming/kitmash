@@ -8,7 +8,7 @@ spaceships in the reference slice, but the schema is kingdom-agnostic.
 > The mesh is a cached opinion; the JSON is the truth.
 
 ![KitMash fleet viewer](https://img.shields.io/badge/deps-numpy_only-blue)
-![tests](https://img.shields.io/badge/gates-7%2F7_passing-brightgreen)
+![tests](https://img.shields.io/badge/gates-8%2F8_passing-brightgreen)
 
 ## What it does
 
@@ -44,7 +44,7 @@ and visible tape.
 pip install numpy
 python3 kitmash.py fleet.json        # generate the five-ship fleet
 python3 make_viewer.py fleet.json    # rebuild the self-contained viewer
-python3 test_kitmash.py              # run the seven verification gates
+python3 test_kitmash.py              # run the eight verification gates
 ```
 
 Then open `kitmash-fleet.html` — drag to orbit, click a plate, and watch

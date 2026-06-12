@@ -275,7 +275,11 @@ def write_part_geo(geo, part):
                                             for x in part.demands])),
                     ("clearance_vols", json.dumps(
                         [[list(map(float, lo)), list(map(float, hi))]
-                         for lo, hi in part.clearances]))):
+                         for lo, hi in part.clearances])),
+                    ("anchor_vols", json.dumps(
+                        None if part.anchor_vols is None else
+                        [[list(map(float, lo)), list(map(float, hi))]
+                         for lo, hi in part.anchor_vols]))):
         geo.addAttrib(hou.attribType.Global, nm, "")
         geo.setGlobalAttribValue(nm, val)
     for nm, val in (("mass", float(part.mass)),

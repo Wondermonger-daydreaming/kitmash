@@ -113,6 +113,8 @@ class Part:
         s.label=label or family
         s.meshes=[]; s.ports=[]; s.grommets=[]; s.gedges=[]
         s.supplies=[]; s.demands=[]; s.clearances=[]
+        s.anchor_vols=None   # local AABBs where struts may weld;
+                             # None = whole part anchorable (legacy)
         s.com=np.zeros(3)
         # tree bookkeeping (set on commit)
         s.parent=None; s.children=[]
@@ -192,6 +194,9 @@ def gen_engine(fc, seed=0, size=1.0):
     p.demands=[["fuel",1.2*size]]
     p.thrust_axial=True
     p.clearances=[(np.array([-6.5,-0.9,-0.9]),np.array([-2.3,0.9,0.9]))]
+    # anchorable: the casing only — never weld to the glow nozzle
+    p.anchor_vols=[(np.array([-2.0,-0.95*size,-0.95*size]),
+                    np.array([ 0.0, 0.95*size, 0.95*size]))]
     return p.finalize()
 
 def gen_wing(fc, seed=0, span=3.2, hand=1):
@@ -231,6 +236,8 @@ def gen_antenna(fc, seed=0):
     v,f=cyl(0.05,0.02,h); p.add(xform(v,np.eye(3),[0,0,h/2]),f)
     v,f=box(0.3,0.3,0.1); p.add(xform(v,np.eye(3),[0,0,0.05]),f,fc["dark"])
     p.ports=[Port([0,0,0],[0,0,-1],[1,0,0],"struct_S",0.30,1)]
+    # anchorable: the base box only — the mast is a whip, not a wall
+    p.anchor_vols=[(np.array([-0.15,-0.15,0.0]),np.array([0.15,0.15,0.1]))]
     return p.finalize()
 
 def gen_pod(fc, seed=0):
@@ -252,6 +259,9 @@ def gen_radiator(fc, seed=0):
     p.ports=[Port([0,0,0],[0,0,1],[1,0,0],"struct_S",0.30,1)]
     p.clearances=[(np.array([-2.2,-w/2-0.5,-2.4]),
                    np.array([ 2.2, w/2+0.5,-0.25]))]
+    # anchorable: the mounting block only — the panel IS the glass
+    p.anchor_vols=[(np.array([-0.15,-0.15,-0.24]),
+                    np.array([ 0.15, 0.15, 0.0]))]
     return p.finalize()
 
 def gen_reactor(fc, seed=0):
@@ -441,26 +451,36 @@ class Assembler:
         """Brace from outboard com to a root-side neighbor. Anchor candidates
         include DIAGONALS (top/bottom edges) because triangulation pays:
         relief = 0.35 + 0.5*sin(angle strut vs member axis). Returns the
-        highest-relief brace."""
+        highest-relief brace.
+
+        Anchorable surface semantics (roadmap 3): if the neighbor declares
+        anchor_vols, candidates clip to those volumes ONLY — no welding to
+        glass. No declaration = whole-AABB anchorable (legacy). This
+        restricts the repair-proposal space; it is mediation, not a new
+        legality check."""
         best=None
         node=root_side
         while node is not None:
-            allv=np.vstack([w[0] for w in node.world])
-            lo,hi=allv.min(0),allv.max(0)
-            straight=np.clip(com,lo,hi)
-            diag_lo=np.array([np.clip(com[0],lo[0],hi[0]),
-                              np.clip(com[1],lo[1],hi[1]),lo[2]])
-            diag_hi=np.array([np.clip(com[0],lo[0],hi[0]),
-                              np.clip(com[1],lo[1],hi[1]),hi[2]])
-            for anchor in (straight,diag_lo,diag_hi):
-                d=np.linalg.norm(anchor-com)
-                if d<0.15: continue
-                sdir=(anchor-com)/d
-                relief=0.35+0.5*np.linalg.norm(np.cross(sdir,jaxis))
-                if best is None or relief>best["relief"]+1e-9 or \
-                   (abs(relief-best["relief"])<1e-9 and d<best["L"]):
-                    best=dict(a=com,b=anchor,relief=float(relief),
-                              anchor_part=node.label,L=float(d))
+            if getattr(node,"w_anchor",None) is not None:
+                vols=list(enumerate(node.w_anchor))
+            else:
+                allv=np.vstack([w[0] for w in node.world])
+                vols=[(-1,(allv.min(0),allv.max(0)))]
+            for vi,(lo,hi) in vols:
+                straight=np.clip(com,lo,hi)
+                diag_lo=np.array([np.clip(com[0],lo[0],hi[0]),
+                                  np.clip(com[1],lo[1],hi[1]),lo[2]])
+                diag_hi=np.array([np.clip(com[0],lo[0],hi[0]),
+                                  np.clip(com[1],lo[1],hi[1]),hi[2]])
+                for anchor in (straight,diag_lo,diag_hi):
+                    d=np.linalg.norm(anchor-com)
+                    if d<0.15: continue
+                    sdir=(anchor-com)/d
+                    relief=0.35+0.5*np.linalg.norm(np.cross(sdir,jaxis))
+                    if best is None or relief>best["relief"]+1e-9 or \
+                       (abs(relief-best["relief"])<1e-9 and d<best["L"]):
+                        best=dict(a=com,b=anchor,relief=float(relief),
+                                  anchor_part=node.label,L=float(d),vol=vi)
             node=node.parent
         return best
 
@@ -533,6 +553,14 @@ class Assembler:
                       prop["R"]@pt.N,prop["R"]@pt.up,pt) for pt in part.ports]
         part.wgrom=[(xform(g.pos[None],prop["R"],prop["t"])[0],g)
                     for g in part.grommets]
+        part.w_anchor=None
+        if part.anchor_vols is not None:    # 8 corners — Lesson 3
+            part.w_anchor=[]
+            for lo,hi in part.anchor_vols:
+                c8=xform(np.array([[a,b,cc] for a in (lo[0],hi[0])
+                         for b in (lo[1],hi[1]) for cc in (lo[2],hi[2])]),
+                         prop["R"],prop["t"])
+                part.w_anchor.append((c8.min(0),c8.max(0)))
         part.parent=prop["host"]; part.jpos=prop["jpos"]
         part.jaxis=prop["jaxis"]; part.jtype=prop["jtype"]
         part.jcluster=prop["jcluster"]
@@ -558,7 +586,7 @@ class Assembler:
             s.strut_segs.append(dict(kind="strut",
                 a=[float(x) for x in a],b=[float(x) for x in b],
                 owner=part.uid,relief=round(float(rep["relief"]),3),
-                anchor=rep["anchor_part"]))
+                anchor=rep["anchor_part"],vol=rep.get("vol",-1)))
         for m in prop["mates"]: m[3].filled=True
         for pl in prop["plugs"]: pl.filled=True
         if prop["strain"]>0.001:
@@ -588,6 +616,9 @@ class Assembler:
                      for pt in hull.ports]
         hull.wgrom=[(g.pos.copy(),g) for g in hull.grommets]
         hull.wcom=np.zeros(3); hull.R=np.eye(3); hull.t=np.zeros(3)
+        hull.w_anchor=None if hull.anchor_vols is None else \
+            [(np.array(lo,float),np.array(hi,float))
+             for lo,hi in hull.anchor_vols]
         allv=np.vstack([w[0] for w in hull.world])
         s.ledger.append((allv.min(0)-0.02,allv.max(0)+0.02,hull))
         s.placed.append(hull)
