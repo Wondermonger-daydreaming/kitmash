@@ -322,6 +322,33 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
    from caption_seed + trace archaeology ("dorsal armament relocated following
    volume concession" must describe a real logged event).
 
+## Houdini integration — architecture DECIDED 2026-06-12, not yet built
+
+Settled in conversation; do not re-litigate, implement (roadmap item 5):
+
+- **Python decides, VEX details.** The assembler core (ledger, auctions,
+  backjumps, spine fold, A* routing) is sequential global-search and stays
+  Python — it runs in a Python SOP nearly unchanged (Houdini ships numpy).
+  VEX is per-element SIMD with no global mutable state; writing the
+  assembler in it would be a chess engine in a fragment shader.
+- **The assembler ships DECISIONS, not meshes.** Python SOP runs build()
+  and emits one POINT per part: @P, @orient, s@generator, s@gen_params,
+  s@part_id, trace as a detail attribute. A For-Each rehydrator instances
+  the matching part HDA with its recorded gen_params and transforms it.
+  The cartoon boxes/cylinders in kitmash.py are placeholder bodies only.
+- **Part HDAs own the contract.** One HDA per family; params = gen_params;
+  output = artist-grade mesh PLUS port/grommet points carrying the schema
+  attributes (the schema is already in Houdini attribute syntax — that was
+  the point). VEX work lives here: greebles, panel lines, strain-driven
+  grunge (f@join_strain, i@era), hose catenary sag + p-clips, faction
+  shroud profiles.
+- **PDG/TOPs** wedges seeds and briefs for the Borges catalogue.
+- The .html viewer stays what it is: the cheap second opinion, no Houdini
+  license in the loop.
+- First concrete deliverables: (a) the ~50-line Python SOP that runs the
+  assembler and emits placement points; (b) one part HDA spec
+  (kitmash_part_tank) proving the round trip; (c) hose curves → sweep.
+
 ## Voice note for the inheriting instance
 
 The human collaborator on this project stress-tests designs by finding the
