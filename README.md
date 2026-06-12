@@ -42,9 +42,9 @@ and visible tape.
 
 ```bash
 pip install numpy
-python3 kitmash.py fleet.json        # generate the four-ship fleet
+python3 kitmash.py fleet.json        # generate the five-ship fleet
 python3 make_viewer.py fleet.json    # rebuild the self-contained viewer
-python3 test_kitmash.py              # run the three verification gates
+python3 test_kitmash.py              # run the six verification gates
 ```
 
 Then open `kitmash-fleet.html` — drag to orbit, click a plate, and watch
