@@ -55,7 +55,13 @@ point):
 
 1. **Switch** on `s@generator` (use an Attribute Wrangle to bake it to a
    switch index, or a Switch-If per part HDA). One input per part HDA:
-   `kitmash::part_tank`, `kitmash::part_engine`, … (one HDA per family).
+   `kitmash::part_fuel_tank`, `kitmash::part_engine`, … (one HDA per
+   family). **Day-one coverage:** `hython houdini/make_part_hdas.py`
+   generates thin-wrapper HDAs for ALL 11 families (interior = Python
+   SOP calling the family's own generator via
+   `kitmash_houdini.write_part_geo` — round trip by construction).
+   Artists then replace interiors family by family with native networks;
+   `kitmash_part_tank.md` is the migration pattern.
 2. **HDA parms read the point directly** — every gen_param is doubled as
    a typed point attribute `gp_*` precisely so HDA parms can use plain
    `point()` expressions, no JSON parsing in the loop:

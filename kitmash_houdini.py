@@ -189,6 +189,101 @@ def rehydrate(rec, factions=None):
 
 
 # ------------------------------------------------------------ Houdini side
+def _hex_rgb(c):
+    c = c.lstrip("#")
+    return tuple(int(c[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+
+def write_part_geo(geo, part):
+    """Write ONE part, in part-local space, onto a hou.Geometry:
+    cartoon body triangles (prim group `body`, v@Cd from the faction
+    palette), port points (group `ports`, full schema attrs), grommet
+    points + gedge polylines (group `grommets`), and the part-level
+    schema as detail attributes.
+
+    This is the interior of the generated thin-wrapper part HDAs
+    (houdini/make_part_hdas.py): the HDA calls the family's own Python
+    generator and hands the Part here — the round trip holds by
+    construction. Assembly-time facts (part_id, join_strain, era of the
+    HOST) are stamped by the rehydrator, never known here."""
+    import hou
+    for nm in ("port_type", "port_cluster", "port_tags", "conduit_type"):
+        geo.addAttrib(hou.attribType.Point, nm, "")
+    for nm in ("port_size", "conduit_size"):
+        geo.addAttrib(hou.attribType.Point, nm, 0.0)
+    for nm in ("port_gender", "port_prio", "port_sym", "cluster_rank"):
+        geo.addAttrib(hou.attribType.Point, nm, 0)
+    for nm in ("N", "up"):
+        geo.addAttrib(hou.attribType.Point, nm, (0.0, 0.0, 0.0))
+    geo.addAttrib(hou.attribType.Prim, "Cd", (1.0, 1.0, 1.0))
+
+    g_body = geo.createPrimGroup("body")
+    g_port = geo.createPointGroup("ports")
+    g_grom = geo.createPointGroup("grommets")
+
+    for v, f, c in part.meshes:
+        rgb = _hex_rgb(c)
+        pts = []
+        for pos in v:
+            pt = geo.createPoint()
+            pt.setPosition(hou.Vector3([float(x) for x in pos]))
+            pts.append(pt)
+        for tri in f:
+            poly = geo.createPolygon()
+            for k in tri:
+                poly.addVertex(pts[k])
+            poly.setAttribValue("Cd", rgb)
+            g_body.add(poly)
+
+    counts = {}
+    for p in part.ports:
+        pt = geo.createPoint()
+        pt.setPosition(hou.Vector3([float(x) for x in p.pos]))
+        pt.setAttribValue("N", tuple(float(x) for x in p.N))
+        pt.setAttribValue("up", tuple(float(x) for x in p.up))
+        pt.setAttribValue("port_type", p.type)
+        pt.setAttribValue("port_size", float(p.size))
+        pt.setAttribValue("port_gender", p.gender)
+        pt.setAttribValue("port_prio", p.prio)
+        pt.setAttribValue("port_sym", p.sym)
+        pt.setAttribValue("port_cluster", p.cluster)
+        pt.setAttribValue("port_tags", p.tags)
+        counts[p.cluster] = counts.get(p.cluster, 0)
+        pt.setAttribValue("cluster_rank", counts[p.cluster])
+        counts[p.cluster] += 1
+        g_port.add(pt)
+
+    gpts = []
+    for g in part.grommets:
+        pt = geo.createPoint()
+        pt.setPosition(hou.Vector3([float(x) for x in g.pos]))
+        pt.setAttribValue("conduit_type", g.ctype)
+        pt.setAttribValue("conduit_size", float(g.size))
+        g_grom.add(pt)
+        gpts.append(pt)
+    for i, j in part.gedges:
+        poly = geo.createPolygon(is_closed=False)
+        poly.addVertex(gpts[i]); poly.addVertex(gpts[j])
+
+    for nm, val in (("family", part.family),
+                    ("generator", GEN_REGISTRY[part.family][0]),
+                    ("gen_params", json.dumps(part.gen_params,
+                                              sort_keys=True)),
+                    ("supplies", json.dumps([list(x)
+                                             for x in part.supplies])),
+                    ("demands", json.dumps([list(x)
+                                            for x in part.demands])),
+                    ("clearance_vols", json.dumps(
+                        [[list(map(float, lo)), list(map(float, hi))]
+                         for lo, hi in part.clearances]))):
+        geo.addAttrib(hou.attribType.Global, nm, "")
+        geo.setGlobalAttribValue(nm, val)
+    for nm, val in (("mass", float(part.mass)),
+                    ("silhouette", float(part.silhouette))):
+        geo.addAttrib(hou.attribType.Global, nm, 0.0)
+        geo.setGlobalAttribValue(nm, val)
+
+
 def write_geo(geo, a, name="", plate=""):
     """Write a finished assembly onto a hou.Geometry as decisions:
     placement points (group `placements`), strut segments (prim group
