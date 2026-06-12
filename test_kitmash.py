@@ -1,6 +1,6 @@
 """KitMash v0.6 tests — every new code path must leave a trace.
 
-Six gates:
+Seven gates:
   1. fleet regression — GS-α reproduces the handoff numbers exactly,
      including the hose path (geometric identity, not just stats)
   2. auction win + eviction — rigged hub where a high-value challenger
@@ -13,12 +13,17 @@ Six gates:
      because the discount makes it cheapest
   6. capacity + rip-up — a wider bundle evicts a squatter from a narrow
      channel; the victim reroutes via its expensive alternative
+  7. houdini round trip — placement records (generator + gen_params +
+     orient/P) rehydrate into geometry IDENTICAL to what the assembler
+     placed: meshes, ports, grommets; strut/hose decisions match their
+     baked counterparts. This is the part-HDA contract, proven in numpy.
 
 Run: python3 test_kitmash.py
 """
 import numpy as np
-from kitmash import (Assembler, Part, Port, Grommet, box, GUILD, build,
-                     gen_hull, seg_share_ok)
+from kitmash import (Assembler, Part, Port, Grommet, box, GUILD, FERAL,
+                     build, gen_hull, gen_reactor, gen_turret, seg_share_ok,
+                     xform)
 
 TESTF = dict(name="TestF", era=1, hull="#888888", accent="#aa6633",
              dark="#444444", glow="#88ccff", safety_factor=1.1,
@@ -251,6 +256,76 @@ def test_capacity_ripup():
           f"D1 reroutes, {rer['metrics']['hops']} hop direct)")
 
 
+# ------------------------------------------------- houdini bridge (gate 7)
+def test_houdini_roundtrip():
+    """The part-HDA contract, proven host-agnostically: a placement record
+    (generator name + gen_params + orient/P) must rehydrate into geometry
+    identical to what the assembler committed. gen_params equality is the
+    determinism checksum (derived values like tank h must reproduce)."""
+    import kitmash_houdini as kh
+
+    ships = [
+        build(GUILD, 7, {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+                         "heavy_cannon": 1.4, "antenna": 0.8,
+                         "sensor_pod": 0.6}, heavy=1.0, span=3.0),
+        build(FERAL, 101, {"engine": 3.0, "fuel_tank": 2.5, "wing": 1.6,
+                           "heavy_cannon": 0.9, "turret": 2.6,
+                           "reactor": 2.3, "sensor_pod": 0.4,
+                           "antenna": 0.3}, heavy=1.0, span=3.0,
+              extra_gens=[gen_reactor, gen_turret]),
+    ]
+    n_parts = n_struts = n_hoses = 0
+    for a in ships:
+        recs = kh.placements(a)
+        assert len(recs) == len(a.placed), "placement count mismatch"
+        for rec, p in zip(recs, a.placed):
+            # quaternion round trip is exact to float noise
+            R2 = kh.R_from_quat(rec["orient"])
+            assert np.allclose(R2, p.R, atol=1e-9), \
+                f"orient drift on {p.uid}"
+            part, R, t = kh.rehydrate(rec)   # asserts gen_params checksum
+            # meshes: rehydrated local geometry x (R, t) == committed world
+            assert len(part.meshes) == len(p.world), p.uid
+            for (v, f, c), (wv, wf, wc) in zip(part.meshes, p.world):
+                assert np.allclose(xform(v, R, t), wv, atol=1e-6), \
+                    f"mesh drift on {p.uid}"
+                assert f == wf and c == wc, f"topology drift on {p.uid}"
+            # ports: position, axes, and every schema attribute
+            assert len(part.ports) == len(p.wports), p.uid
+            for pt, (wpos, wN, wup, wp) in zip(part.ports, p.wports):
+                assert np.allclose(R @ pt.pos + t, wpos, atol=1e-6), p.uid
+                assert np.allclose(R @ pt.N, wN, atol=1e-6), p.uid
+                assert np.allclose(R @ pt.up, wup, atol=1e-6), p.uid
+                assert (pt.type, pt.size, pt.gender, pt.sym, pt.cluster,
+                        pt.tags) == (wp.type, wp.size, wp.gender, wp.sym,
+                                     wp.cluster, wp.tags), p.uid
+            # grommets ride along too
+            assert len(part.grommets) == len(p.wgrom), p.uid
+            for g, (wpos, wg) in zip(part.grommets, p.wgrom):
+                assert np.allclose(R @ g.pos + t, wpos, atol=1e-6), p.uid
+                assert (g.ctype, g.size) == (wg.ctype, wg.size), p.uid
+        # struts/collars: one decision record per baked cylinder
+        assert len(a.strut_segs) == len(a.struts), \
+            f"strut decisions diverge from baked struts: " \
+            f"{len(a.strut_segs)} != {len(a.struts)}"
+        # hoses: path + conduit identity
+        hr = kh.hose_records(a)
+        assert len(hr) == len(a.hoses)
+        for rec, h in zip(hr, a.hoses):
+            assert rec["pts"] == [list(map(float, pt)) for pt in h["pts"]]
+            assert rec["ctype"] == h["ctype"] and rec["dia"] == h["dia"]
+            assert rec["style"] == a.fc["hose"]
+        n_parts += len(recs); n_struts += len(a.strut_segs)
+        n_hoses += len(hr)
+    # eviction must purge strut decisions exactly like baked struts
+    b = rigged_run([gen_blocker, gen_big], {"blocker": 1.0, "big": 5.0},
+                   make_hub([P_TOP_S9, P_SIDE_M8]))
+    assert len(b.strut_segs) == len(b.struts), \
+        "uncommit left ghost strut decisions"
+    print(f"PASS  houdini round trip ({n_parts} placements rehydrated "
+          f"exactly; {n_struts} strut decisions, {n_hoses} hoses match)")
+
+
 if __name__ == "__main__":
     test_fleet_regression()
     test_auction_win_and_evict()
@@ -258,4 +333,5 @@ if __name__ == "__main__":
     test_segregation()
     test_loom()
     test_capacity_ripup()
+    test_houdini_roundtrip()
     print("ALL GATES PASS")

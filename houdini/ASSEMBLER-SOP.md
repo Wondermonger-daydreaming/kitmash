@@ -1,0 +1,110 @@
+# The Assembler SOP — KitMash inside Houdini
+
+*Roadmap item 5, deliverable (a). Architecture decided 2026-06-12:
+**Python decides, VEX details.** The assembler ships decisions, not meshes.*
+
+Status: code complete and numpy-proven (gate 7 of `test_kitmash.py`);
+Houdini-side cook untested until the 21.0.729 install lands
+(`houdini/install_houdini.sh`, target `/opt/hfs21.0`).
+
+## The network
+
+```
+geo: kitmash_ship
+├── python_sop: assembler          # paste houdini/kitmash_assembler_sop.py
+│     emits decision geometry only (points + curves, no part meshes)
+│
+├── split: placements              # group `placements`
+│   └── foreach_point: rehydrate   # ← the For-Each rehydrator (below)
+│
+├── split: struts                  # prim group `struts`
+│   └── sweep (round, f@width=0.06, 6 cols)         → strut cylinders
+├── split: collars                 # point group `collars`
+│   └── copytopoints: collar disc (tube r=@r h=0.1, oriented by v@N/v@up)
+│
+├── split: hoses                   # prim group `hoses`
+│   └── … → sweep                  # see hoses-to-sweep.md (deliverable c)
+│
+└── split: open_ports              # greeble/terminator hooks (optional)
+      feral: tape/dangling-cable copies; guild: nothing (caps are parts)
+```
+
+Merge the branches at the end. The Python SOP cooks one `build()` per
+change of (faction, seed, wants, heavy, span, genes) — under a second per
+ship, no caching games needed.
+
+## Parameters on the Python SOP
+
+| parm | type | default | notes |
+|---|---|---|---|
+| `kitmash_path` | String | dir of kitmash.py | inserted into `sys.path` |
+| `faction` | Ordered Menu | 0 | 0 High Guild, 1 Feral |
+| `seed` | Integer | 7 | |
+| `wants` | String | `{"engine":3.0,"fuel_tank":2.5,"wing":2.0,"heavy_cannon":1.4,"antenna":0.8,"sensor_pod":0.6}` | JSON family→weight |
+| `heavy` | Float | 1.0 | cannon gene |
+| `span` | Float | 3.2 | wing gene |
+| `use_radiator` / `use_reactor` / `use_turret` | Toggle | off | extra genes |
+
+These parms ARE the brief — when the agent loop arrives (roadmap 6), the
+brief author writes these and PDG wedges them.
+
+## The For-Each rehydrator
+
+Inside a For-Each Point loop (piece attribute `part_id`, single pass per
+point):
+
+1. **Switch** on `s@generator` (use an Attribute Wrangle to bake it to a
+   switch index, or a Switch-If per part HDA). One input per part HDA:
+   `kitmash::part_tank`, `kitmash::part_engine`, … (one HDA per family).
+2. **HDA parms read the point directly** — every gen_param is doubled as
+   a typed point attribute `gp_*` precisely so HDA parms can use plain
+   `point()` expressions, no JSON parsing in the loop:
+   ```
+   h     = point("../foreach_begin1", 0, "gp_h", 0)
+   seed  = point("../foreach_begin1", 0, "gp_seed", 0)
+   ```
+3. **Transform** the HDA output by the point's `@orient` + `@P`
+   (Transform Pieces, or a wrangle:
+   `@P = qrotate(point(1,"orient",0), @P) + point(1,"P",0);`).
+
+The contract this depends on — *HDA output in part-local space ==
+generator output in part-local space, ports included* — is exactly what
+gate 7 proves in numpy and what `kitmash_part_tank.md` specifies for the
+first HDA.
+
+**Why the placement point carries derived values** (`gp_h`, `gp_r`, …):
+the HDA must NOT re-run Python's `random.Random(seed)` — VEX can't
+reproduce it and shouldn't try. Python derives, the HDA consumes derived
+values; `gp_seed` is for cosmetic VEX jitter only (greebles, panel-line
+offsets), never for anything structural. `rehydrate()` in
+`kitmash_houdini.py` asserts this determinism on every test run.
+
+## What the decisions carry for VEX (the "details" half)
+
+- `f@join_strain`, `i@era` on placements → strain-driven grunge, retrofit
+  weld seams (the HDA reads them as parms or post-bind attributes)
+- `f@relief`, `s@anchor` on struts → gusset size, weld-bead density
+- `f@strain` on collars → adapter prominence
+- `s@hose_style` (`shroud` | `catenary`) on hoses → faction dressing
+- detail `s@trace` → the full ledger rides inside the .hip; the Borges
+  catalogue and the agent loop read it from here
+
+## Headless smoke test (once the install lands)
+
+```bash
+source /opt/hfs21.0/houdini_setup
+hython -c '
+import hou, sys
+sys.path.insert(0, "<dir of kitmash.py>")
+import kitmash as km, kitmash_houdini as kh
+geo = hou.Geometry()
+kh.write_geo(geo, km.build(km.GUILD, 7,
+    {"engine":3.0,"fuel_tank":2.5,"wing":2.0,"heavy_cannon":1.4,
+     "antenna":0.8,"sensor_pod":0.6}, heavy=1.0, span=3.0), name="GS-alpha")
+print(len(geo.points()), "points,", len(geo.prims()), "prims")
+print(geo.attribValue("stats"))'
+```
+
+Expected: placements (10) + strut segment points + hose points +
+open-port points; `stats` echoing `{"parts": 10, "mass": 9464,
+"struts": 3, "hoses": 1}` — the same numbers gate 1 pins.

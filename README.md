@@ -8,7 +8,7 @@ spaceships in the reference slice, but the schema is kingdom-agnostic.
 > The mesh is a cached opinion; the JSON is the truth.
 
 ![KitMash fleet viewer](https://img.shields.io/badge/deps-numpy_only-blue)
-![tests](https://img.shields.io/badge/gates-6%2F6_passing-brightgreen)
+![tests](https://img.shields.io/badge/gates-7%2F7_passing-brightgreen)
 
 ## What it does
 
@@ -44,7 +44,7 @@ and visible tape.
 pip install numpy
 python3 kitmash.py fleet.json        # generate the five-ship fleet
 python3 make_viewer.py fleet.json    # rebuild the self-contained viewer
-python3 test_kitmash.py              # run the six verification gates
+python3 test_kitmash.py              # run the seven verification gates
 ```
 
 Then open `kitmash-fleet.html` — drag to orbit, click a plate, and watch
@@ -87,7 +87,7 @@ solver, A* hose routing), hard-won lessons, and roadmap live in
       segregation enforcement, the loom discount
 - [ ] Anchorable-surface semantics for struts
 - [ ] USD export (`kitmash:` namespaced primvars)
-- [ ] Houdini HDA generators — the original host, arriving late, by design
+- [x] Houdini port — Python SOP + part-HDA contract + hoses→sweep (`houdini/`); HDA generators in progress
 - [ ] Agent loop — brief author / tie-break hooks / trace review
 - [ ] The Borges catalogue
 

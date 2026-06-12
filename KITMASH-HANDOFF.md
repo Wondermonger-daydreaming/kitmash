@@ -268,10 +268,56 @@ Roadmap item 2, implemented and trace-verified:
 auction win + uncommit invariants, backjump, segregation (HV refuses the
 fuel bus; coolant control rides it), loom, capacity + rip-up.
 
+## v0.7 — the Houdini port (roadmap item 5), 2026-06-12
+
+All three decided deliverables are built; numpy-side proven, Houdini-side
+written-but-unverified (the 21.0.729 download was still in flight —
+`houdini/install_houdini.sh` installs to `/opt/hfs21.0` when it lands;
+NOTE: its pinned MD5 did not match the partially-downloaded tarball —
+re-pin or drop the check once the download completes).
+
+- **`kitmash_houdini.py`** — the bridge. Host-agnostic extractors:
+  `placements()` (P + orient quaternion + generator + gen_params + join
+  metadata per part), `strut_records()`, `hose_records()`, `open_ports()`;
+  `rehydrate()` regenerates a part from its record and asserts the
+  gen_params checksum (derived values like tank h must reproduce from the
+  seed — this is why they're recorded). `write_geo()` is the only function
+  that touches `hou`; everything it serializes comes from the tested
+  extractors.
+- **`kitmash.py` additive change**: `strut_segs` — strut endpoints and
+  adapter collars recorded as DECISIONS at commit (the baked cylinders
+  previously discarded them), purged symmetrically in uncommit.
+  fleet.json verified byte-identical after the change.
+- **Gate 7** in `test_kitmash.py` (now SEVEN gates): full round trip on
+  GS-α + FV-ε — 20 placements rehydrate to exact geometric identity
+  (meshes, port frames, grommets), strut decisions match baked struts
+  including after rigged evictions, hose records match. This gate IS the
+  part-HDA contract, proven without a Houdini license.
+- **Deliverable (a)** `houdini/kitmash_assembler_sop.py` (paste-in Python
+  SOP, ~40 lines) + `houdini/ASSEMBLER-SOP.md` (parm interface — the parms
+  ARE the brief; For-Each rehydrator wiring; headless smoke test pinned to
+  gate-1 numbers). gen_params are doubled as typed `gp_*` point attrs so
+  HDA parms rehydrate via plain `point()` expressions — no JSON parsing in
+  the loop.
+- **Deliverable (b)** `houdini/kitmash_part_tank.md` (the contract: parms
+  = gen_params; h consumed as-is, never re-derived; seed cosmetic only;
+  assembly-time facts stamped by the rehydrator, never known by the part)
+  + `make_tank_hda.py` (hython builder) + `verify_tank_hda.py` (acceptance
+  gate: diffs HDA output against a REAL GS-α placement record, exit-coded).
+- **Deliverable (c)** `houdini/hoses-to-sweep.md` — the polyline IS the
+  reservation: sag displaces between route nodes, nodes stay put;
+  convertline-before-resample for per-span catenary; p-clips on the nodes
+  the router paid for; per-ctype Cd closes the viewer's one-style cheat.
+
+First session with Houdini installed: run `install_houdini.sh`, then
+`hython houdini/make_tank_hda.py && hython houdini/verify_tank_hda.py`,
+then the smoke test in ASSEMBLER-SOP.md. Expect hou-API goblins in
+make_tank_hda.py (written blind; flagged); fix there, not in the contract.
+
 ## Current state & known cheats
 
-`kitmash.py` (v0.6) runs standalone as `python3 kitmash.py <out.json>`;
-`python3 test_kitmash.py` runs the six gates; `python3 make_viewer.py
+`kitmash.py` (v0.7) runs standalone as `python3 kitmash.py <out.json>`;
+`python3 test_kitmash.py` runs the seven gates; `python3 make_viewer.py
 fleet.json` rebuilds the viewer. v0.3 is archived as `kitmash_v03.py`.
 Current fleet: GS-α (10 parts, 9464 kg, 3 struts), GS-β (8 parts, 10971 kg
 — 99.7% of budget — 6 struts incl. doubled root bracing), FV-γ (10 parts,

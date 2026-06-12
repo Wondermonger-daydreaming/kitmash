@@ -310,6 +310,7 @@ class Assembler:
         s.generators=generators
         s.trace=[{"ev":"seed","seed":seed,"faction":faction["name"]}]
         s.placed=[]; s.ledger=[]; s.clear=[]; s.struts=[]; s.hoses=[]
+        s.strut_segs=[]   # decision records (endpoints), parallel to struts
         s.budget=dict(brief["budgets"]); s.mass_cap0=brief["budgets"]["mass"]
         s.requeue=[]; s.backjumps_left=4; s.bj_tried=set()
         s.tried_clusters=set(); s.ripups_left=4
@@ -406,6 +407,7 @@ class Assembler:
         s.ledger=[e for e in s.ledger if e[2] is not part]
         s.clear=[e for e in s.clear if e[2] is not part]
         s.struts=[st for st in s.struts if st[3]!=part.uid]
+        s.strut_segs=[st for st in s.strut_segs if st["owner"]!=part.uid]
         for m in part._mates:
             m[3].filled=False
             if m[3].cluster: s.tried_clusters.discard((id(host),m[3].cluster))
@@ -553,6 +555,10 @@ class Assembler:
             v,f=cyl(0.06,0.06,L,seg=6)
             s.struts.append((xform(v,frame(z,up),(a+b)/2),f,s.fc["dark"],
                              part.uid))
+            s.strut_segs.append(dict(kind="strut",
+                a=[float(x) for x in a],b=[float(x) for x in b],
+                owner=part.uid,relief=round(float(rep["relief"]),3),
+                anchor=rep["anchor_part"]))
         for m in prop["mates"]: m[3].filled=True
         for pl in prop["plugs"]: pl.filled=True
         if prop["strain"]>0.001:
@@ -560,6 +566,11 @@ class Assembler:
             v,f=cyl(sp.size*0.55,sp.size*0.55,0.1,seg=8)
             s.struts.append((xform(v,frame(sN,sup),prop["jpos"]+sN*0.02),
                              f,s.fc["accent"],part.uid))
+            s.strut_segs.append(dict(kind="collar",
+                pos=[float(x) for x in prop["jpos"]+sN*0.02],
+                axis=[float(x) for x in sN],up=[float(x) for x in sup],
+                r=float(sp.size*0.55),owner=part.uid,
+                strain=round(float(prop["strain"]),3)))
             events.append(dict(ev="adapter",part=part.label,
                                metrics=dict(strain=round(prop["strain"],3)),
                                result="collar_spawned"))
