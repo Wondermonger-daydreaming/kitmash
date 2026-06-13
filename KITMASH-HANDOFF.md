@@ -478,6 +478,43 @@ usd-core`; 26.5 installed this session). The project core stays numpy-only;
 usd-core is an optional gate dep, exactly as Houdini is for the hython gates.
 Contract doc: `usd/USD-EXPORT.md` (the primvar schema is the brief).
 
+## v0.10 — native wrapper interiors, family by family (item 5 follow-up), 2026-06-13
+
+The wrapper HDAs ship a Python-SOP interior (round-trips by construction); the
+migration replaces each with a native SOP/VEX network under the same type name.
+This session built the gate-for-all and the second worked example.
+
+- **`houdini/verify_native_hda.py`** — the generalization of
+  `verify_tank_hda.py` the handoff asked for ("gated by verify_tank_hda
+  adapted per family"). Point it at any family (or none → all installed); it
+  diffs `kitmash::part_<family>::1.0` against the Python generator across
+  3 seeds + a feral pass. Wrappers first, native (`houdini/*.hda`) LAST, so a
+  migrated family's native interior wins over its wrapper. Checks ports
+  (P/N/up/type/size/gender/prio/sym), grommets+gedges, family/generator,
+  gen_params (float32-honest), mass, silhouette, supplies/demands
+  (float32-honest rates), clearance_vols, anchor_vols, body bbox.
+  **784 checks green across all 11 families** (engine native, 10 wrappers).
+- **`houdini/make_engine_hda.py`** — native `kitmash::part_engine::1.0`, the
+  SECOND family migrated (after the tank). Two `size`-scaled X-cones
+  (casing 0.75s→0.95s, nozzle 0.95s→0.55s), each phase-rolled like the tank
+  drum (`frame([1,0,0],[0,0,1])` → vertex 0 at world +z); +X port; **demands**
+  (not supplies); clearance_vols + anchor_vols (casing only — never the glow
+  nozzle). **Cooked and gated green, 3 seeds + feral.**
+- **Goblins:** the body, both phase rolls, ports, grommets, gen_params, mass,
+  and both volume sets were green on the FIRST cook — the geometry mapping
+  held. The lone catch: the `demands` rate. Native VEX computes `1.2*size` on a
+  float32 channel (`1.2`→`1.20000005`) while the wrapper emits exact `1.2`. Fix
+  was in the GATE: a netlist rate derived in float32 VEX earns the same
+  float32-honest 5e-7 tolerance as mass/gen_params — exact `==` was the wishful
+  bound. (The recurring lesson: a tolerance is a claim about storage.)
+- **Pattern + recipe + remaining 9** documented in
+  `houdini/NATIVE-MIGRATION.md`. Watch-list for the rest: `core_hull` (7 ports,
+  X-cone nose, 5-node gedge — the biggest); `turret` (tilted barrel axis, not a
+  clean X roll); `wing`/`heavy_cannon` (mount_rail cluster + handedness tags).
+- Both repos: native engine HDA lives at `houdini/kitmash_part_engine.hda`
+  alongside the native tank; the wrapper at `houdini/hda/` stays as fallback
+  (`make_part_hdas.py` still builds all 11). Consumers install native-last.
+
 ## Current state & known cheats
 
 `kitmash.py` (v0.8) runs standalone as `python3 kitmash.py <out.json>`;
@@ -520,8 +557,10 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
 5. ~~Houdini port~~ BUILT in v0.7 + **live-verified** under hython
    (Apprentice, 2026-06-12): three deliverables + 11 wrapper HDAs (cook
    smoke-tested) + headless rehydrator + demo hip. See the v0.7-live
-   section for the goblins found and fixed. Remaining follow-up: artists
-   migrate wrapper interiors to native networks per family.
+   section for the goblins found and fixed. Follow-up (native interiors):
+   IN PROGRESS in v0.10 — 2/11 families native (tank, engine), the
+   generalized gate `verify_native_hda.py` proves any family; 9 remain.
+   See the v0.10 section and `houdini/NATIVE-MIGRATION.md`.
 6. **Agent loop** — architecture is DECIDED, implement it as designed:
    layered, mostly outside the loop. The agent is a creative director, not a
    servo. Three surfaces: (a) **brief author** before the run — wants,
