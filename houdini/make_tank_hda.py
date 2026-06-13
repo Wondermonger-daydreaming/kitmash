@@ -1,23 +1,31 @@
-"""make_tank_hda.py — build kitmash::part_tank::1.0 programmatically.
+"""make_tank_hda.py — build kitmash::part_fuel_tank::1.0 (NATIVE interior).
 
-Run:  source /opt/hfs21.0/houdini_setup
-      hython houdini/make_tank_hda.py [out.hda]
+Run:  /opt/hfs21.0.729/bin/hython houdini/make_tank_hda.py [out.hda]
+      then  /opt/hfs21.0.729/bin/hython houdini/verify_native_hda.py fuel_tank
 
 Builds the network specified in kitmash_part_tank.md, collapses it into
 a subnet, converts to a digital asset with parms (h, seed), and saves
-houdini/kitmash_part_tank.hda. Then run verify_tank_hda.py to prove the
-round trip. (Written ahead of the install; hou API is standard but this
-script is UNTESTED until Houdini 21.0.729 lands.)
+houdini/kitmash_part_fuel_tank.hda.
+
+TYPE-NAME FIX (v0.12, 2026-06-13): this asset was originally named
+`kitmash::part_tank::1.0` — a legacy name from when the tank was "the first
+part HDA (deliverable b)," before the GEN_REGISTRY key settled on `fuel_tank`.
+The generalized gate `verify_native_hda.py` looks up the type by registry key
+(`kitmash::part_fuel_tank::1.0`), so under the legacy name the unified gate was
+silently exercising the WRAPPER, not this native interior (the native was
+reachable only via the standalone legacy `verify_tank_hda.py`). Renamed to
+`kitmash::part_fuel_tank::1.0` so the native interior wins over the wrapper of
+the same type (installed last) under the unified gate — same pattern as engine.
 """
 import os, sys
 import hou
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else \
     os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 "kitmash_part_tank.hda")
+                 "kitmash_part_fuel_tank.hda")
 
 obj = hou.node("/obj")
-geo = obj.createNode("geo", "build_part_tank")
+geo = obj.createNode("geo", "build_part_fuel_tank")
 
 # --- body: drum (axis +X, centered z=0.55) + mounting skirt -----------------
 tube = geo.createNode("tube", "drum")
@@ -85,6 +93,12 @@ setdetailattrib(0, "mass",       900.0 * h / 2.4);
 setdetailattrib(0, "silhouette", 0.45);
 setdetailattrib(0, "supplies",   "[[\"fuel\", 3.0]]");
 setdetailattrib(0, "demands",    "[]");
+// The tank declares no clearance/anchor volumes, but the wrapper schema stamps
+// them anyway ("[]" / "null"). Match it so the gate PROVES the absence rather
+// than skipping the check (attrib-presence guard): full parity, no dropped
+// coverage.
+setdetailattrib(0, "clearance_vols", "[]");
+setdetailattrib(0, "anchor_vols",    "null");
 ''')
 
 out = geo.createNode("output", "OUT")
@@ -93,11 +107,12 @@ out.setDisplayFlag(True); out.setRenderFlag(True)
 
 # --- collapse -> digital asset ----------------------------------------------
 subnet = geo.collapseIntoSubnet(
-    [tube, phase, skirt, body, schema, out], "part_tank")
+    [tube, phase, skirt, body, schema, out], "part_fuel_tank")
 asset = subnet.createDigitalAsset(
-    name="kitmash::part_tank::1.0",
+    name="kitmash::part_fuel_tank::1.0",
     hda_file_name=OUT,
-    description="KitMash fuel tank (family fuel_tank, schema kitmash/0.6)",
+    description="KitMash fuel tank (family fuel_tank, native interior, "
+                "schema kitmash/0.6)",
     min_num_inputs=0, max_num_inputs=0)
 
 # parms = gen_params: h (derived in Python, consumed here), seed (cosmetic)

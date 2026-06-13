@@ -11,12 +11,33 @@ Python dependency, and artist-editable (greebles, panel lines, strain grunge).
 ports and grommets are load-bearing and may NEVER move; the body is a
 placeholder artists may change. Migration is a swap of the *interior*, gated.
 
-## Worked examples (native interiors built so far: 2 / 11)
+## Worked examples (native interiors built so far: 7 / 11)
 
 | Family | Builder | What it demonstrates |
 |--------|---------|----------------------|
-| `fuel_tank` (`part_tank`) | `make_tank_hda.py` | 1 phase-rolled drum + skirt box; -Z port; supplies; gedge |
+| `fuel_tank` | `make_tank_hda.py` | 1 phase-rolled drum + skirt box; -Z port; supplies; gedge. Type fixed `part_tank`→`part_fuel_tank` in v0.12 (see note) |
 | `engine` | `make_engine_hda.py` | 2 size-scaled X-cones; +X port; **demands**; clearance_vols + anchor_vols |
+| `sensor_pod` | `make_pod_hda.py` | the MINIMAL case: 1 Z-native straight cyl (no phase roll — bbox phase-invariant); +Z port; a **derived-only** gen_param `r` exposed as a parm so the gate injects the Python RNG value |
+| `terminator_cap` | `make_cap_hda.py` | the DEGENERATE case: 1 Z-native cone; -Z port; **gen_params = {}** (no parm templates at all); smallest part in the kit |
+| `reactor` | `make_reactor_hda.py` | first ROUTING body on a Z-native cyl: tapered shell (height + center-z both link to `h`) + mount box; +Z port; **2 high_volt grommets** (one h-dependent in VEX) + gedge + supplies |
+| `antenna` | `make_antenna_hda.py` | first NON-NULL `anchor_vols` (literal AABB — base box only, the mast is a whip); Z-native whip cone (seg=14) + base box; -Z port; height + center-z link to `h` |
+| `radiator` | `make_radiator_hda.py` | first family with BOTH non-empty clearance_vols (w-scaled in VEX) and a literal anchor_vols; all-BOX body (no phase concern); panel sizey links to `w`; +Z port |
+
+> **✓ Tank type-name drift — found AND fixed 2026-06-13 (v0.12).** The native
+> tank HDA was type `kitmash::part_tank::1.0` — a legacy name from when it was
+> "the first part HDA (deliverable b)," before the registry settled on the family
+> key `fuel_tank`. The generalized gate `verify_native_hda.py` looks up
+> `kitmash::part_fuel_tank::1.0` (the registry key) — which was the **wrapper**,
+> not the native `part_tank`. So the unified gate's `fuel_tank` pass was testing
+> the WRAPPER by construction; the native interior was reachable only via the
+> standalone legacy `verify_tank_hda.py`. **Fix applied:** `make_tank_hda.py` now
+> builds `kitmash::part_fuel_tank::1.0` → `houdini/kitmash_part_fuel_tank.hda`;
+> the orphaned `kitmash_part_tank.hda` and the now-redundant `verify_tank_hda.py`
+> were retired (two divergent gates were what let the drift hide); the
+> `part_tank.md` contract was updated. Verified native wins for all four families
+> via `type().definition().libraryFilePath()`. **The rule this codifies: a native
+> HDA's type suffix MUST equal its `GEN_REGISTRY` key, or the unified gate
+> silently tests the wrapper.**
 
 ## The gate: `verify_native_hda.py`
 
@@ -80,10 +101,11 @@ conduit attrs, gedge count, `family`/`generator`, `gen_params` (float32-honest),
   tolerance (5e-7) as `mass` and `gen_params` floats — exact `==` was the wishful
   bound. (Lesson, again: a tolerance is a claim about storage.)
 
-## Remaining (9 / 11 still wrappers)
+## Remaining (4 / 11 still wrappers — the watch-list)
 
-`antenna`, `core_hull`, `heavy_cannon`, `radiator`, `reactor`, `sensor_pod`,
-`terminator_cap`, `turret`, `wing`. Each is a `make_<family>_hda.py` following
+`core_hull`, `heavy_cannon`, `turret`, `wing`. These are the genuinely hard
+ones (see watch-list below): all four have a geometry wrinkle the first seven
+did not. Each is a `make_<family>_hda.py` following
 the recipe, gated by `verify_native_hda.py <family>`. Watch-list: `core_hull`
 (two cyls incl. an X-cone nose + 7 ports + a 5-node fuel gedge — the biggest);
 `turret` (barrel `frame([1,0,0.35],[0,0,1])` is a *tilted* axis — not a clean X

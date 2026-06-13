@@ -1,4 +1,11 @@
-# `kitmash::part_tank` — the first part HDA (deliverable b)
+# `kitmash::part_fuel_tank` — the first part HDA (deliverable b)
+
+> **Renamed v0.12 (2026-06-13):** the type was originally `kitmash::part_tank::1.0`,
+> a legacy name predating the `GEN_REGISTRY` key `fuel_tank`. It is now
+> `kitmash::part_fuel_tank::1.0` so the unified gate `verify_native_hda.py`
+> (which keys on the registry) exercises the NATIVE interior, not the wrapper.
+> The standalone `verify_tank_hda.py` was retired (superseded by the unified
+> gate). This doc keeps its filename for stable cross-references.
 
 *One HDA per family; params = gen_params; output = artist-grade mesh PLUS
 port/grommet points carrying the schema attributes. The schema is already
@@ -11,17 +18,17 @@ families are transcription work.
 
 The numeric source of truth is `gen_tank()` in `kitmash.py`; gate 7 of
 `test_kitmash.py` proves the placement-record → rehydration identity in
-numpy on every test run. `houdini/verify_tank_hda.py` re-proves it
-against the actual HDA output once Houdini is installed.
+numpy on every test run. `houdini/verify_native_hda.py fuel_tank` re-proves it
+against the actual native HDA output.
 
 ## Type
 
 | | |
 |---|---|
-| node type | `kitmash::part_tank::1.0` (SOP) |
+| node type | `kitmash::part_fuel_tank::1.0` (SOP) |
 | implements | schema `kitmash/0.6`, family `fuel_tank`, generator `gen_tank` |
 | inputs | 0 |
-| file | `houdini/kitmash_part_tank.hda` (built by `make_tank_hda.py`) |
+| file | `houdini/kitmash_part_fuel_tank.hda` (built by `make_tank_hda.py`) |
 
 ## Parameters (= gen_params, the crown jewel)
 
@@ -115,6 +122,6 @@ point after instancing (they are not the part's to know).
 
 ```bash
 source /opt/hfs21.0.729/houdini_setup
-hython houdini/make_tank_hda.py     # writes houdini/kitmash_part_tank.hda
-hython houdini/verify_tank_hda.py   # proves the round trip
+hython houdini/make_tank_hda.py              # writes houdini/kitmash_part_fuel_tank.hda
+hython houdini/verify_native_hda.py fuel_tank  # proves the native round trip
 ```
