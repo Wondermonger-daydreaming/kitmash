@@ -48,9 +48,12 @@ hull.setParms({"sizex": 7.0, "sizey": 2.2, "sizez": 1.8})   # centered at origin
 # X-cone nose: Houdini tube orient=0 (X); rad1 at -X (0.9), rad2 at +X (0.5).
 # tx = L/2 + 0.7 = 3.5*scale + 0.7 (links to scale post-collapse). The 90 deg
 # roll about the X axis (pivot on the axis: py=pz=0) phase-aligns with km.cyl.
+# NOTE: Houdini's X-tube puts rad1 at +X; km.cyl(0.9, 0.5) under frame(local
+# Z->world X) puts r0=0.9 at -X. So rad1=0.5 (+X, the nose tip), rad2=0.9 (-X) —
+# SWAPPED so the cone points forward. (Bbox-invariant; correct taper direction.)
 nose = geo.createNode("tube", "nose")
 nose.setParms({"type": 1, "cap": 1, "orient": 0, "cols": 14,
-               "rad1": 0.9, "rad2": 0.5, "height": 1.6, "tx": 4.2})
+               "rad1": 0.5, "rad2": 0.9, "height": 1.6, "tx": 4.2})
 nose_phase = geo.createNode("xform", "nose_phase")
 nose_phase.setInput(0, nose)
 nose_phase.setParms({"rx": 90.0, "px": 0.0, "py": 0.0, "pz": 0.0})

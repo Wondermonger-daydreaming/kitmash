@@ -46,9 +46,12 @@ geo = obj.createNode("geo", "build_part_reactor")
 # Houdini tube orient=2 is the Z axis; rad1 at -Z (0.34), rad2 at +Z (0.30).
 # seg=10 -> cols=10. Height AND center-z both link to `h` post-collapse
 # (km: center z = -h/2 - 0.07). No phase roll (Z-tube, body of revolution).
+# NOTE: Houdini's tube puts rad1 at the +axis end; km.cyl(r0,r1,h) puts r0 at
+# -h/2. So km.cyl(0.34, 0.30) maps to rad1=0.30 (+Z), rad2=0.34 (-Z) — SWAPPED.
+# (Bbox-invariant for an axis-aligned cone, but the correct taper direction.)
 shell = geo.createNode("tube", "shell")
 shell.setParms({"type": 1, "cap": 1, "orient": 2, "cols": 10,
-                "rad1": 0.34, "rad2": 0.30, "height": 1.0, "tz": -0.57})
+                "rad1": 0.30, "rad2": 0.34, "height": 1.0, "tz": -0.57})
 
 mount = geo.createNode("box", "mount")
 mount.setParms({"sizex": 0.5, "sizey": 0.5, "sizez": 0.14, "tz": -0.07})

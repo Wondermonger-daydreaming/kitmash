@@ -38,9 +38,12 @@ geo = obj.createNode("geo", "build_part_antenna")
 # Houdini tube orient=2 is the Z axis; rad1 at -Z (0.05), rad2 at +Z (0.02).
 # seg default 14 -> cols=14. Height AND center-z both link to `h` (km center
 # z = h/2). No phase roll (Z-tube, body of revolution).
+# NOTE: Houdini's tube puts rad1 at +Z; km.cyl(0.05, 0.02) puts r0=0.05 at -h/2.
+# So rad1=0.02 (+Z, the whip tip), rad2=0.05 (-Z, the base) — SWAPPED so the
+# mast tapers to a point at the top, not the bottom.
 mast = geo.createNode("tube", "mast")
 mast.setParms({"type": 1, "cap": 1, "orient": 2, "cols": 14,
-               "rad1": 0.05, "rad2": 0.02, "height": 1.0, "tz": 0.5})
+               "rad1": 0.02, "rad2": 0.05, "height": 1.0, "tz": 0.5})
 
 base = geo.createNode("box", "base")
 base.setParms({"sizex": 0.3, "sizey": 0.3, "sizez": 0.1, "tz": 0.05})

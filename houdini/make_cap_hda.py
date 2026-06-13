@@ -37,9 +37,11 @@ geo = obj.createNode("geo", "build_part_terminator_cap")
 # --- body: one Z-native tapered cylinder, 0.22 -> 0.20, height 0.12, z=-0.06 --
 # Houdini tube orient=2 is the Z axis; rad1 at -Z, rad2 at +Z. seg=8 -> cols=8.
 # A cone of revolution: phase-invariant bbox, no roll. Constant radii (no parm).
+# NOTE: Houdini's tube puts rad1 at +Z; km.cyl(0.22, 0.20) puts r0=0.22 at -h/2.
+# So rad1=0.20 (+Z), rad2=0.22 (-Z) — SWAPPED for the correct taper direction.
 body = geo.createNode("tube", "shell")
 body.setParms({"type": 1, "cap": 1, "orient": 2, "cols": 8,
-               "rad1": 0.22, "rad2": 0.20, "height": 0.12, "tz": -0.06})
+               "rad1": 0.20, "rad2": 0.22, "height": 0.12, "tz": -0.06})
 
 # --- ports + detail schema (VEX, detail mode) --------------------------------
 schema = geo.createNode("attribwrangle", "schema_points")

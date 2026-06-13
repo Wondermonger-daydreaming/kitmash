@@ -42,16 +42,21 @@ geo = obj.createNode("geo", "build_part_engine")
 # the `size` parm post-collapse (placeholder constants until then). The 90°
 # roll about world X (pivot on the axis) phase-aligns the 14-gon with km.cyl
 # (whose vertex 0 sits at world +z under frame([1,0,0],[0,0,1])).
+# NOTE: Houdini's X-tube puts rad1 at +X; km.cyl(r0,r1) under frame(local
+# Z->world X) puts r0 at -X. So km.cyl(0.75,0.95) -> rad1=0.95 (+X), rad2=0.75
+# (-X), and km.cyl(0.95,0.55) -> rad1=0.55, rad2=0.95 — radii SWAPPED vs the
+# generator's order (bbox-invariant, but the correct taper direction). The
+# expression links below carry the swapped coefficients.
 casing = geo.createNode("tube", "casing")
 casing.setParms({"type": 1, "cap": 1, "orient": 0, "cols": 14,
-                 "rad1": 0.75, "rad2": 0.95, "height": 2.0, "tx": -1.0})
+                 "rad1": 0.95, "rad2": 0.75, "height": 2.0, "tx": -1.0})
 casing_phase = geo.createNode("xform", "casing_phase")
 casing_phase.setInput(0, casing)
 casing_phase.setParms({"rx": 90.0, "px": 0.0, "py": 0.0, "pz": 0.0})
 
 nozzle = geo.createNode("tube", "nozzle")
 nozzle.setParms({"type": 1, "cap": 1, "orient": 0, "cols": 14,
-                 "rad1": 0.95, "rad2": 0.55, "height": 0.7, "tx": -2.3})
+                 "rad1": 0.55, "rad2": 0.95, "height": 0.7, "tx": -2.3})
 nozzle_phase = geo.createNode("xform", "nozzle_phase")
 nozzle_phase.setInput(0, nozzle)
 nozzle_phase.setParms({"rx": 90.0, "px": 0.0, "py": 0.0, "pz": 0.0})
@@ -138,8 +143,9 @@ ptg.append(hou.IntParmTemplate(
 asset.type().definition().setParmTemplateGroup(ptg)
 
 # link the cone radii to the size parm (km.gen_engine coefficients)
-for node, p, coef in (("casing", "rad1", 0.75), ("casing", "rad2", 0.95),
-                      ("nozzle", "rad1", 0.95), ("nozzle", "rad2", 0.55)):
+# swapped coefficients: rad1 is the +X end (km r1), rad2 the -X end (km r0)
+for node, p, coef in (("casing", "rad1", 0.95), ("casing", "rad2", 0.75),
+                      ("nozzle", "rad1", 0.55), ("nozzle", "rad2", 0.95)):
     asset.node(node).parm(p).setExpression(f'{coef}*ch("../size")')
 
 asset.type().definition().updateFromNode(asset)
