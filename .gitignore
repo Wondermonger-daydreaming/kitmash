@@ -3,3 +3,6 @@ houdini/backup/
 houdini/hda/backup/
 __pycache__/
 *.pyc
+
+# transient camera+light sidecar written by render_usd_fleet.py (embeds abs path)
+*.cam.usda
