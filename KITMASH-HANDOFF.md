@@ -425,6 +425,59 @@ Struts may no longer weld to glass:
   short of cap) rejects cleanly with `strut_insufficient`. Honest
   constraints produce honest starvation, again.
 
+## v0.9 — USD export (roadmap item 4), 2026-06-13
+
+The second host. Houdini confirmed the schema; USD confirms it again, in a
+totally independent runtime — *two hosts make it a schema.* Built the same
+way the Houdini port was: ship DECISIONS, reuse the gate-7-proven extractors,
+let only the serializer touch the format API.
+
+- **`kitmash_usd.py`** — the bridge. **Imports** `placements`,
+  `strut_records`, `hose_records`, `open_ports` from `kitmash_houdini` (no
+  second copy to drift); only `write_usd()` / `read_ship()` touch `pxr`.
+  Provenance rides **`primvars:kitmash:*`** (constant interpolation, so it
+  inherits from each part Xform down to its child geometry). Parts are
+  `Xform`(translate+orient) + provenance primvars + typed `kitmash:gp:*` +
+  child `Mesh` (the cartoon "cached opinion"). Struts/collars/hoses/ports as
+  `BasisCurves`/`Xform` with their decision coords on `double` primvars.
+- **The decision layer is float64 → BIT-EXACT.** Unlike the Houdini HDA
+  layer (float32 VEX channels → 5e-7 honest tolerance), USD stores `double`,
+  so gen_params / mass / silhouette / join_strain / P / orient / all
+  coords round-trip *exactly* — verified through `.usda` ASCII serialization
+  (max error 0.0). The gate's tolerance is 1e-9; the claim is "exact," and
+  it's true.
+- **`make_fleet_usd.py`** rebuilds the canonical 5 ships → `usd/kitmash_fleet.usda`
+  (ASCII, git-diffable, the USD twin of `fleet.json`; stats match exactly:
+  GS-α 10/9464/3/1 …).
+- **`verify_usd.py`** — the gate (paralleling `verify_tank_hda.py`): rebuild
+  the real fleet, export, read back, diff against the extractors. **810 checks.**
+  Includes **the cook test**: compose each part's authored xform against the
+  rehydrated LOCAL mesh and compare to the assembler's WORLD geometry (≤1e-4)
+  — so a wrong-handed `orient` quaternion can't pass behind a green primvar
+  round trip (v0.7's "built is not cooks", applied to USD).
+- **Verified green in TWO USD runtimes:** the lab venv's `usd-core` 26.5
+  (license-free — the Gate-7 virtue carried to host #2) AND
+  `/opt/hfs21.0.729/bin/hython`'s own `pxr` 25.5. 810 checks each, cook test
+  on all five ships in both. The format layer is not usd-core-specific.
+- **Core untouched:** `fleet.json` byte-identical, all 8 `test_kitmash.py`
+  gates pass. Purely additive, exactly like v0.7. `kitmash/0.6` unchanged
+  (USD is additive over the Houdini export, not a new schema).
+
+**Goblins (all in the `pxr` API surface, contracts held — as predicted):**
+1. `Tf.MakeValidIdentifier` collapses non-ascii → `GS-α`/`GS-β` both became
+   `GS___`, colliding on one prim path ("translate already exists"). Fix:
+   transliterate Greek before sanitizing (`α→alpha`), tokens unique + readable
+   + derivable from the name alone.
+2. `Xformable.GetLocalTransformation()` returns a bare `Matrix4d` (not a
+   `(matrix, resets)` tuple); `[0]` silently took the first row (`Vec4d`).
+3. A stale local signature (`read_local_to_world(stage, prim)` called with one
+   arg) — mine, same class as the Houdini `node.parent()` miss.
+
+**Dependency note:** the venv gate needs `usd-core` (`.venv/bin/pip install
+usd-core`; 26.5 installed this session). The project core stays numpy-only;
+usd-core is an optional gate dep, exactly as Houdini is for the hython gates.
+Contract doc: `usd/USD-EXPORT.md` (the primvar schema is the brief).
+
 ## Current state & known cheats
 
 `kitmash.py` (v0.8) runs standalone as `python3 kitmash.py <out.json>`;
@@ -460,7 +513,10 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
    hose styling in the viewer.
 3. ~~Anchorable surface semantics~~ DONE in v0.8 (AABB volumes; face
    tags/surface normals remain a refinement).
-4. **USD export**: `kitmash:` namespaced primvars; the format's real test.
+4. ~~USD export~~ DONE in v0.9 (see the v0.9 section): `primvars:kitmash:*`,
+   round-trip-verified in BOTH usd-core (license-free) and Houdini's pxr.
+   Follow-up: replace the cartoon `/geo` Mesh with `references`/`payload` to
+   per-family part-asset USDs (the USD twin of the part HDAs).
 5. ~~Houdini port~~ BUILT in v0.7 + **live-verified** under hython
    (Apprentice, 2026-06-12): three deliverables + 11 wrapper HDAs (cook
    smoke-tested) + headless rehydrator + demo hip. See the v0.7-live
