@@ -131,11 +131,11 @@ def gate5_write_geo(a):
         assert g in prim_group_names, f"missing prim group '{g}'"
 
     # placement point count must match
-    n_place = len(geo.pointGroup("placements").points())
+    n_place = len(geo.findPointGroup("placements").points())
     assert n_place == len(recs), f"placement point count {n_place} != {len(recs)}"
 
     # strut prim count
-    n_strut_prims = len(geo.primGroup("struts").prims())
+    n_strut_prims = len(geo.findPrimGroup("struts").prims())
     assert n_strut_prims == len(struts), \
         f"strut prim count {n_strut_prims} != {len(struts)}"
 
@@ -147,7 +147,7 @@ def gate6_attribute_spotcheck(a):
     geo = hou.Geometry()
     kh.write_geo(geo, a)
 
-    pts = geo.pointGroup("placements").points()
+    pts = geo.findPointGroup("placements").points()
     for pt, rec in zip(pts, recs):
         # orient must be a unit quaternion (x,y,z,w)
         q = pt.attribValue("orient")
@@ -195,7 +195,7 @@ def gate8_multi_faction():
         assert len(recs) > 0, f"no placements for faction {fc['name']}"
         geo = hou.Geometry()
         kh.write_geo(geo, a, name=f"test_{fc['name']}")
-        pts = geo.pointGroup("placements").points()
+        pts = geo.findPointGroup("placements").points()
         assert len(pts) == len(recs)
 
 

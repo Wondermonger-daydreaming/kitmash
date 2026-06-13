@@ -3,9 +3,10 @@
 *Roadmap item 5, deliverable (a). Architecture decided 2026-06-12:
 **Python decides, VEX details.** The assembler ships decisions, not meshes.*
 
-Status: code complete and numpy-proven (gate 7 of `test_kitmash.py`);
-Houdini-side cook untested until the 21.0.729 install lands
-(`houdini/install_houdini.sh`, target `/opt/hfs21.0`).
+Status: code complete, numpy-proven (gate 7 of `test_kitmash.py`) AND
+**live-verified under hython** (Houdini 21.0.729 Apprentice, 2026-06-12 —
+`test_headless.py` 8/8, 11 wrapper HDAs cook clean). Houdini installs at
+`/opt/hfs21.0.729` (no `/opt/hfs21.0` symlink — use the full path).
 
 ## The network
 
@@ -85,6 +86,15 @@ values; `gp_seed` is for cosmetic VEX jitter only (greebles, panel-line
 offsets), never for anything structural. `rehydrate()` in
 `kitmash_houdini.py` asserts this determinism on every test run.
 
+**Load-bearing precision contract (since the live-verification session):**
+`gen_params` records derived jitter at **full float precision**, NOT
+rounded. Earlier generators stored `round(h, 2)`; the part HDA consumes
+`gp_h` *as-is*, so a rounded recording cannot reproduce the assembler's
+geometry. The recorded value IS the consumed value — they must be the
+same number to the bit the host can carry. The HDA detail re-stamp uses
+`sprintf("%.9g", h)` (full float32 fidelity; plain `%g`'s 6 sig-digits
+would silently truncate below the verify gate's tolerance).
+
 ## What the decisions carry for VEX (the "details" half)
 
 - `f@join_strain`, `i@era` on placements → strain-driven grunge, retrofit
@@ -95,10 +105,10 @@ offsets), never for anything structural. `rehydrate()` in
 - detail `s@trace` → the full ledger rides inside the .hip; the Borges
   catalogue and the agent loop read it from here
 
-## Headless smoke test (once the install lands)
+## Headless smoke test (verified live, 2026-06-12)
 
 ```bash
-source /opt/hfs21.0/houdini_setup
+source /opt/hfs21.0.729/houdini_setup
 hython -c '
 import hou, sys
 sys.path.insert(0, "<dir of kitmash.py>")

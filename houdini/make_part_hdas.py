@@ -39,12 +39,16 @@ import kitmash_houdini as kh
 
 SOP_CODE = '''\
 node = hou.pwd(); geo = node.geometry()
+# Promoted parms live on the HDA node (the parent), not on this inner
+# Python SOP. hou.pwd() is the SOP; evalParm must climb one level or the
+# very first cook raises (the parms simply don't exist down here).
+host = node.parent()
 import sys
-p = node.evalParm("kitmash_path")
+p = host.evalParm("kitmash_path")
 if p and p not in sys.path: sys.path.insert(0, p)
 import kitmash as km, kitmash_houdini as kh
-fc = (km.GUILD, km.FERAL)[node.evalParm("faction")]
-kw = {{k: node.evalParm(k) for k in {keys!r}}}
+fc = (km.GUILD, km.FERAL)[host.evalParm("faction")]
+kw = {{k: host.evalParm(k) for k in {keys!r}}}
 kh.write_part_geo(geo, km.{gen}(fc, **kw))
 '''
 
@@ -94,3 +98,34 @@ print(f"\n{len(built)} part HDAs built. Rehydrator switch order "
       f"(s@generator):")
 for family, _, _ in built:
     print(f"  {kh.GEN_REGISTRY[family][0]:14s} -> kitmash::part_{family}")
+
+# --- cook smoke test: 'built' must mean 'cooks' (Lesson 9) ------------------
+# Build does not cook; a wrong parm-node or VEX goblin stays invisible until
+# instantiation. Install each, cook it, assert it emits body + a port.
+print("\ncook smoke test:")
+fails = []
+for family, hda_path, _ in built:
+    hou.hda.installFile(hda_path)
+    probe = obj.createNode("geo", "smoke_" + family)
+    inst = probe.createNode(f"kitmash::part_{family}::1.0", family)
+    try:
+        inst.cook(force=True)
+        g = inst.geometry()
+        body = g.findPrimGroup("body")
+        nb = len(body.prims()) if body else 0
+        ports = g.findPointGroup("ports")
+        npt = len(ports.points()) if ports else 0
+        ok = nb > 0
+        print(f"  {'ok  ' if ok else 'FAIL'} {family:14s} "
+              f"body_prims={nb} ports={npt}")
+        if not ok:
+            fails.append(family)
+    except hou.Error as e:
+        print(f"  FAIL {family:14s} {str(e)[:120]}")
+        fails.append(family)
+    probe.destroy()
+
+if fails:
+    print(f"\nSMOKE TEST FAILED: {fails}")
+    sys.exit(1)
+print(f"\nall {len(built)} wrapper HDAs cook clean.")

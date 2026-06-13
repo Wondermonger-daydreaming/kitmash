@@ -26,11 +26,19 @@ tube.setParms({"type": 1, "cap": 1, "orient": 0,          # poly, capped, X
                "tz": 0.55})
 tube.parm("height").set(2.4)                               # re-linked below
 
+# phase-align the 14-gon with kitmash.cyl: km.cyl's vertex 0 sits at local
+# +x -> world +z (frame([1,0,0],[0,0,1])), while Houdini's X-oriented tube
+# starts its cross-section at +y. A 90° roll about the drum axis matches
+# the cartoon's bbox exactly (verify gate holds the body to ±1e-4).
+phase = geo.createNode("xform", "drum_phase")
+phase.setInput(0, tube)
+phase.setParms({"rx": 90.0, "px": 0.0, "py": 0.0, "pz": 0.55})
+
 skirt = geo.createNode("box", "skirt")
 skirt.setParms({"sizex": 0.7, "sizey": 0.7, "sizez": 0.12, "tz": 0.05})
 
 body = geo.createNode("merge", "body_merge")
-body.setInput(0, tube); body.setInput(1, skirt)
+body.setInput(0, phase); body.setInput(1, skirt)
 
 # --- ports + grommets + detail schema (VEX, detail mode) --------------------
 schema = geo.createNode("attribwrangle", "schema_points")
@@ -58,7 +66,8 @@ setpointgroup(0, "ports", pt, 1);
 float h = chf("../h");
 int g0 = addpoint(0, {0, 0, 0.1});
 int g1 = addpoint(0, set(0.6, 0.0, 0.55));
-foreach (int g; array(g0, g1)) {
+int gs[] = array(g0, g1);
+foreach (int g; gs) {
     setpointattrib(0, "conduit_type", g, "fuel");
     setpointattrib(0, "conduit_size", g, 0.1);
     setpointgroup(0, "grommets", g, 1);
@@ -68,8 +77,10 @@ addprim(0, "polyline", g0, g1);
 // ---- part-level schema (detail) ----
 setdetailattrib(0, "family",     "fuel_tank");
 setdetailattrib(0, "generator",  "gen_tank");
+// %.9g: full float32 fidelity (gen_params now records full precision;
+// %g's 6 sig digits would truncate below the verify gate's tolerance)
 setdetailattrib(0, "gen_params",
-    sprintf("{\"h\": %g, \"seed\": %d}", h, chi("../seed")));
+    sprintf("{\"h\": %.9g, \"seed\": %d}", h, chi("../seed")));
 setdetailattrib(0, "mass",       900.0 * h / 2.4);
 setdetailattrib(0, "silhouette", 0.45);
 setdetailattrib(0, "supplies",   "[[\"fuel\", 3.0]]");
@@ -82,7 +93,7 @@ out.setDisplayFlag(True); out.setRenderFlag(True)
 
 # --- collapse -> digital asset ----------------------------------------------
 subnet = geo.collapseIntoSubnet(
-    [tube, skirt, body, schema, out], "part_tank")
+    [tube, phase, skirt, body, schema, out], "part_tank")
 asset = subnet.createDigitalAsset(
     name="kitmash::part_tank::1.0",
     hda_file_name=OUT,

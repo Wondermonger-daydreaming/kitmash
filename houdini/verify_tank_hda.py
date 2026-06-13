@@ -10,8 +10,12 @@ the HDA's output against the Python part:
 
   - port: position, v@N, v@up, type, size, gender, prio, sym (exact)
   - grommets: positions, conduit_type, conduit_size, gedge prim (exact)
-  - detail: family, generator, gen_params JSON, mass, silhouette,
-    supplies (exact; gen_params is the determinism checksum)
+  - detail: family, generator (exact strings); gen_params JSON
+    (ints exact, floats to 5e-7 relative — the values ride float32
+    channels and a %.9g re-stamp, so float64-exact equality is
+    physically impossible; the tolerance is the tightest honest bound);
+    mass to 5e-4, silhouette to 1e-6 (float32 detail-attrib storage);
+    supplies (exact). gen_params is still the determinism checksum.
   - body: bounding box vs the kitmash cartoon (±1e-4 — placeholder
     parity; artists may later change the body, ports may NEVER move)
 
@@ -68,8 +72,8 @@ if ports:
           (pp.type, pp.size, pp.gender, pp.prio, pp.sym))
 
 # --- 4. grommets + gedge -------------------------------------------------------
-gr = [pt for pt in g.points()
-      if any(grp.name() == "grommets" for grp in pt.groups())]
+_ggrp = g.findPointGroup("grommets")
+gr = list(_ggrp.points()) if _ggrp else []
 check("grommet count == 2", len(gr) == len(pypart.grommets))
 for hg, pg_ in zip(gr, pypart.grommets):
     check(f"grommet @P {pg_.pos.tolist()}",
@@ -85,18 +89,33 @@ check("gedge prim count == 1", len(gedges) == len(pypart.gedges))
 # --- 5. detail schema ------------------------------------------------------------
 check("family", g.attribValue("family") == "fuel_tank")
 check("generator", g.attribValue("generator") == "gen_tank")
+# gen_params re-stamp: VEX channels/attribs are float32 and sprintf
+# truncates, so floats compare to 1e-6 relative; ints/strings exact.
+hgp = json.loads(g.attribValue("gen_params"))
+def _gp_eq(a, b):
+    # bools are ints in Python — exclude before the numeric branch.
+    a_num = isinstance(a, (int, float)) and not isinstance(a, bool)
+    b_num = isinstance(b, (int, float)) and not isinstance(b, bool)
+    if not (a_num and b_num):
+        return a == b                       # strings, type drift -> False
+    if isinstance(a, int) and isinstance(b, int):
+        return a == b                       # seed etc.: ints compare exact
+    # at least one float: float32 channel/attrib + %.9g re-stamp drift only
+    return abs(a - b) <= 5e-7 * max(1.0, abs(a), abs(b))
 check("gen_params checksum",
-      json.loads(g.attribValue("gen_params")) == gp,
+      set(hgp) == set(gp) and all(_gp_eq(hgp[k], gp[k]) for k in gp),
       g.attribValue("gen_params"))
-check("mass", abs(g.attribValue("mass") - pypart.mass) < 1e-4)
-check("silhouette", abs(g.attribValue("silhouette") - 0.45) < 1e-9)
+# mass/silhouette live in float32 detail attribs computed by float32 VEX:
+# tolerance is storage-honest (ulp at 840 is 6.1e-5), not float64-wishful.
+check("mass", abs(g.attribValue("mass") - pypart.mass) < 5e-4)
+check("silhouette", abs(g.attribValue("silhouette") - 0.45) < 1e-6)
 check("supplies", json.loads(g.attribValue("supplies")) ==
       [list(x) for x in pypart.supplies])
 
 # --- 6. body bbox vs the cartoon ---------------------------------------------------
 pyv = np.vstack([v for v, f, c in pypart.meshes])
-body_prims = [pr for pr in g.prims()
-              if any(grp.name() == "body" for grp in pr.groups())]
+_bgrp = g.findPrimGroup("body")
+body_prims = list(_bgrp.prims()) if _bgrp else []
 check("body group non-empty", len(body_prims) > 0)
 if body_prims:
     pos = np.array([list(v.point().position())

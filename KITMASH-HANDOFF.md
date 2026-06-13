@@ -85,7 +85,10 @@ i@grommet_id     + line prims = pre-authored intra-part routing graph
 - **Segregation matrix**: fuel×high_volt never share / 20cm min;
   fuel×exhaust_clearance forbidden transit; coolant friendly; optical×high_volt
   separate bundles, crossing OK.
-- `kitmash:schema_version` on root. Currently 0.4.
+- `kitmash:schema_version` on root. Currently `kitmash/0.6` (export
+  string). The doctrine/schema prose here describes v0.4 fields; v0.5–v0.8
+  are additive (see the per-version sections below) — the version sections
+  are the source of truth for changes past 0.4.
 
 ## Algorithms (all implemented in kitmash.py)
 
@@ -270,11 +273,11 @@ fuel bus; coolant control rides it), loom, capacity + rip-up.
 
 ## v0.7 — the Houdini port (roadmap item 5), 2026-06-12
 
-All three decided deliverables are built; numpy-side proven, Houdini-side
-written-but-unverified (the 21.0.729 download was still in flight —
-`houdini/install_houdini.sh` installs to `/opt/hfs21.0` when it lands;
-NOTE: its pinned MD5 did not match the partially-downloaded tarball —
-re-pin or drop the check once the download completes).
+All three decided deliverables are built; numpy-side proven AND
+**Houdini-side live-verified** as of 2026-06-12 (see the v0.7-live section
+below — Apprentice activated, the full hython runlist passed). The
+original blind-written code carried exactly the goblins the handoff
+predicted; they were found and fixed under live hython, recorded below.
 
 - **`kitmash_houdini.py`** — the bridge. Host-agnostic extractors:
   `placements()` (P + orient quaternion + generator + gen_params + join
@@ -332,21 +335,69 @@ Beyond the three decided deliverables, same session:
   verified outside hou).
 
 **Install status (2026-06-12 evening):** Houdini 21.0.729 installed at
-`/opt/hfs21.0.729` (NOTE: no `/opt/hfs21.0` symlink was created — use the
-full path or make the symlink). hython launches but **no license**:
-hserver is connected to sidefx.com with no entitlement; a SideFX account
-login (Apprentice) is required — that's the human's move. The moment it
-exists, run, in order:
+`/opt/hfs21.0.729` (NOTE: no `/opt/hfs21.0` symlink — use the full path).
+**Apprentice license activated; live hython verification passed.** Use
+the full hython path:
 ```
 H=/opt/hfs21.0.729/bin/hython
-$H houdini/test_headless.py        # 8 integration gates
-$H houdini/make_part_hdas.py       # 11 wrapper part HDAs
+$H houdini/test_headless.py        # 8 integration gates -> 8/8
+$H houdini/make_part_hdas.py       # 11 wrapper HDAs + cook smoke test
 $H houdini/make_tank_hda.py && $H houdini/verify_tank_hda.py  # (b) gate
-$H houdini/make_ship_hip.py        # full demo scene
+$H houdini/make_ship_hip.py        # full demo scene -> kitmash_ship.hip
 ```
-All hou-touching code was written blind; expect goblins in the hou API
-calls (parm names, HDA creation), fix there — the contracts and the
-host-agnostic extractors are gate-proven, don't bend them.
+
+## v0.7-live — Houdini Apprentice activated; live hython verification passed (2026-06-12)
+
+The blind-written hou-touching code carried exactly the goblins the
+handoff warned of. Found and fixed under live hython (Apprentice, the
+host's `libxcb-*` Qt deps installed, License Administrator → Apprentice):
+
+1. **`Geometry.pointGroup()` / `primGroup()` do not exist in HOM** — the
+   lookup verbs are `findPointGroup()` / `findPrimGroup()` (return the
+   group or `None`). Fixed in `kitmash_houdini.py` (rehydrate_to_geo) and
+   `houdini/test_headless.py`. `Point.groups()` / `Prim.groups()` also
+   don't exist — `verify_tank_hda.py` now queries the named group and
+   reads `.points()` / `.prims()`.
+2. **VEX `foreach (int g; array(g0, g1))` is an ambiguous `len()` call**
+   (array() has no fixed element type there) — declare `int gs[] =
+   array(...)` first, then `foreach (int g; gs)`. Fixed in
+   `make_tank_hda.py`.
+3. **The wrapper-HDA Python SOP evaluated promoted parms on the wrong
+   node.** `hou.pwd()` inside the interior SOP returns the SOP, but
+   `seed`/`faction`/`kitmash_path` live on the HDA node *above* it →
+   every `kitmash::part_*` HDA raised on its FIRST cook. `make_part_hdas.py`
+   builds, never cooks, so the lie was invisible. Fixed: eval on
+   `node.parent()`. **A cook smoke test now runs after the build** —
+   "built" must mean "cooks" (Lesson 9 applied to the Houdini layer).
+4. **`gen_params` recorded ROUNDED derived jitter** (`round(h,2)` etc.) in
+   six generators (tank/antenna/pod/radiator/reactor/turret). The
+   part-HDA contract consumes `gen_params.h` *as-is* (VEX cannot reproduce
+   `random.Random`), so a 2-decimal recording could not reproduce the
+   assembler geometry (verify gate: bbox-x off 1.17e-3, mass off 0.88 at
+   1e-4). Fix: record FULL precision in gen_params; mesh/mass math was
+   already unrounded, so **fleet.json stayed byte-identical** — only the
+   recipe string gained digits. The HDA re-stamps with `%.9g`. This makes
+   the recipe contract honest: the recorded value IS the consumed value.
+5. **Drum vertex-phase**: Houdini's X-oriented `tube` starts its 14-gon at
+   +y; `km.cyl`'s vertex 0 sits at local +x. A 90° roll about the drum
+   axis (Transform SOP `drum_phase`, pivot `{0,0,0.55}`) phase-aligns them
+   so the body bbox matches the cartoon to ±1e-4.
+
+Tolerances in `verify_tank_hda.py` were made **float32-honest** (the
+values ride float32 VEX channels + a `%.9g` re-stamp; float64-exact
+equality is physically impossible): gen_params floats to 5e-7 relative
+(ints exact, type drift → fail), mass to 5e-4, silhouette to 1e-6, body
+bbox unchanged at 1e-4. Provenance carried through: `write_geo` now
+exports the v0.8 strut `vol` attribute (which declared anchor volume took
+the weld; −1 = legacy whole-AABB).
+
+**Verified green this session:** test_headless 8/8 · 11 wrapper HDAs build
++ cook clean · tank round-trip PROVEN · make_ship_hip cooks GS-α at
+10/9464/3/1 · `test_kitmash.py` all 8 Python gates · fleet.json
+byte-identical to the prior commit. Lesson reinforced: **the blind-written
+contracts and host-agnostic extractors held; every goblin was in the hou
+API surface, exactly as predicted. "Built" is not "cooks" — verify the
+cook.**
 
 ## v0.8 — anchorable surface semantics (roadmap item 3), 2026-06-12
 
@@ -410,9 +461,11 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
 3. ~~Anchorable surface semantics~~ DONE in v0.8 (AABB volumes; face
    tags/surface normals remain a refinement).
 4. **USD export**: `kitmash:` namespaced primvars; the format's real test.
-5. ~~Houdini port~~ BUILT in v0.7 (three deliverables + wrapper HDAs +
-   headless rehydrator + demo hip); live hython verification pending a
-   SideFX license login — see the v0.7 section runlist.
+5. ~~Houdini port~~ BUILT in v0.7 + **live-verified** under hython
+   (Apprentice, 2026-06-12): three deliverables + 11 wrapper HDAs (cook
+   smoke-tested) + headless rehydrator + demo hip. See the v0.7-live
+   section for the goblins found and fixed. Remaining follow-up: artists
+   migrate wrapper interiors to native networks per family.
 6. **Agent loop** — architecture is DECIDED, implement it as designed:
    layered, mostly outside the loop. The agent is a creative director, not a
    servo. Three surfaces: (a) **brief author** before the run — wants,

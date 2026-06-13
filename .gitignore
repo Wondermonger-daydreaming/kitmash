@@ -1,2 +1,5 @@
+# Houdini auto-backup dirs (bak1..bakN copies on every HDA save/build)
+houdini/backup/
+houdini/hda/backup/
 __pycache__/
 *.pyc

@@ -299,8 +299,8 @@ def rehydrate_to_geo(geo, keep_decisions=False):
     curves are left as curves for wiring/sweeping downstream. Decision
     points are consumed unless keep_decisions=True."""
     import hou
-    place = [pt for pt in geo.pointGroup("placements").points()]
-    collars = [pt for pt in geo.pointGroup("collars").points()]
+    place = [pt for pt in geo.findPointGroup("placements").points()]
+    collars = [pt for pt in geo.findPointGroup("collars").points()]
     geo.addAttrib(hou.attribType.Prim, "Cd", (1.0, 1.0, 1.0))
     geo.addAttrib(hou.attribType.Prim, "part_id", "")
 
@@ -360,7 +360,7 @@ def write_geo(geo, a, name="", plate=""):
     for nm in ("mass", "silhouette", "join_strain", "port_size",
                "relief", "r", "strain", "dia", "width"):
         geo.addAttrib(hou.attribType.Point, nm, 0.0)
-    for nm in ("era", "port_gender", "port_sym"):
+    for nm in ("era", "port_gender", "port_sym", "vol"):
         geo.addAttrib(hou.attribType.Point, nm, 0)
     for nm in ("N", "up"):
         geo.addAttrib(hou.attribType.Point, nm, (0.0, 0.0, 0.0))
@@ -406,6 +406,11 @@ def write_geo(geo, a, name="", plate=""):
                 pt.setAttribValue("owner", st["owner"])
                 pt.setAttribValue("anchor", st["anchor"])
                 pt.setAttribValue("relief", st["relief"])
+                # v0.8 anchorable-surface provenance: which declared volume
+                # took the weld (-1 = legacy whole-part AABB). Dropping it
+                # on the Houdini side would lose the only record of WHERE a
+                # strut may grunge/dress against a fragile surface.
+                pt.setAttribValue("vol", int(st.get("vol", -1)))
                 pt.setAttribValue("width", 0.06)
                 poly.addVertex(pt)
             g_strut.add(poly)

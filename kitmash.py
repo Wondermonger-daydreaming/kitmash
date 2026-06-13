@@ -173,7 +173,7 @@ def gen_hull(fc, seed=0, scale=1.0):
 
 def gen_tank(fc, seed=0):
     rng=random.Random(seed); h=2.4*rng.uniform(0.9,1.1)
-    p=Part("fuel_tank",{"seed":seed,"h":round(h,2)},mass=900*h/2.4,
+    p=Part("fuel_tank",{"seed":seed,"h":h},mass=900*h/2.4,
            silhouette=0.45,faction=fc["name"],era=fc["era"],
            color=fc["accent"],label="fuel tank")
     v,f=cyl(0.55,0.55,h); p.add(xform(v,frame([1,0,0],[0,0,1]),[0,0,0.55]),f)
@@ -231,7 +231,7 @@ def gen_cannon(fc, seed=0, heavy=1.0):
 
 def gen_antenna(fc, seed=0):
     rng=random.Random(seed); h=1.9*rng.uniform(0.85,1.2)
-    p=Part("antenna",{"seed":seed,"h":round(h,2)},mass=40,silhouette=0.25,
+    p=Part("antenna",{"seed":seed,"h":h},mass=40,silhouette=0.25,
            faction=fc["name"],era=fc["era"],color=fc["accent"],label="antenna")
     v,f=cyl(0.05,0.02,h); p.add(xform(v,np.eye(3),[0,0,h/2]),f)
     v,f=box(0.3,0.3,0.1); p.add(xform(v,np.eye(3),[0,0,0.05]),f,fc["dark"])
@@ -242,7 +242,7 @@ def gen_antenna(fc, seed=0):
 
 def gen_pod(fc, seed=0):
     rng=random.Random(seed); r=rng.uniform(0.30,0.345)   # strain substrate
-    p=Part("sensor_pod",{"seed":seed,"r":round(r,3)},mass=120,silhouette=0.3,
+    p=Part("sensor_pod",{"seed":seed,"r":r},mass=120,silhouette=0.3,
            faction=fc["name"],era=fc["era"],color=fc["accent"],label="sensor pod")
     v,f=cyl(r-0.02,r-0.02,0.8,seg=10); p.add(xform(v,np.eye(3),[0,0,-0.45]),f)
     p.ports=[Port([0,0,0],[0,0,1],[1,0,0],"struct_S",r,1)]
@@ -252,7 +252,7 @@ def gen_radiator(fc, seed=0):
     """Drop radiator: hangs below a struct_S port, and its radiating faces
     demand a wide emptiness — a clearance hog, built to start auctions."""
     rng=random.Random(seed); w=rng.uniform(1.6,2.0)
-    p=Part("radiator",{"seed":seed,"w":round(w,2)},mass=260,silhouette=0.5,
+    p=Part("radiator",{"seed":seed,"w":w},mass=260,silhouette=0.5,
            faction=fc["name"],era=fc["era"],color=fc["glow"],label="radiator")
     v,f=box(0.16,w,1.4); p.add(xform(v,np.eye(3),[0,0,-0.82]),f)
     v,f=box(0.3,0.3,0.24); p.add(xform(v,np.eye(3),[0,0,-0.12]),f,fc["dark"])
@@ -268,7 +268,7 @@ def gen_reactor(fc, seed=0):
     """Auxiliary reactor pod: supplies high_volt. First grommet is the
     supply tap (routing taps wgrom[0])."""
     rng=random.Random(seed); h=rng.uniform(0.85,1.0)
-    p=Part("reactor",{"seed":seed,"h":round(h,2)},mass=420,silhouette=0.35,
+    p=Part("reactor",{"seed":seed,"h":h},mass=420,silhouette=0.35,
            faction=fc["name"],era=fc["era"],color=fc["glow"],label="reactor")
     v,f=cyl(0.34,0.30,h,seg=10); p.add(xform(v,np.eye(3),[0,0,-h/2-0.07]),f)
     v,f=box(0.5,0.5,0.14); p.add(xform(v,np.eye(3),[0,0,-0.07]),f,fc["dark"])
@@ -282,7 +282,7 @@ def gen_reactor(fc, seed=0):
 def gen_turret(fc, seed=0):
     """Point-defense turret: demands high_volt. Mounts any struct_S."""
     rng=random.Random(seed); barrel=rng.uniform(0.7,0.9)
-    p=Part("turret",{"seed":seed,"barrel":round(barrel,2)},mass=170,
+    p=Part("turret",{"seed":seed,"barrel":barrel},mass=170,
            silhouette=0.3,faction=fc["name"],era=fc["era"],color=fc["dark"],
            label="turret")
     v,f=box(0.5,0.5,0.3); p.add(xform(v,np.eye(3),[0,0,0.2]),f)

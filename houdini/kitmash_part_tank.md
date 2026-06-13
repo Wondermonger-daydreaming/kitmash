@@ -39,7 +39,11 @@ point's `gp_h` / `gp_seed` (see `ASSEMBLER-SOP.md`).
 Placeholder matching the kitmash cartoon, so the three.js viewer and
 Houdini agree until an artist replaces it:
 - drum: capped tube, radius 0.55, axis **+X**, length `h`, centered
-  `{0, 0, 0.55}`
+  `{0, 0, 0.55}`. **Vertex-phase note (load-bearing for the bbox gate):**
+  Houdini's X-oriented `tube` starts its cross-section at +y, but
+  `km.cyl`'s vertex 0 sits at local +x. A 90° roll about the drum axis
+  (Transform SOP, pivot `{0, 0, 0.55}`) is required so the body bounding
+  box matches the cartoon to ±1e-4 — `verify_tank_hda.py` enforces this.
 - mounting skirt: box 0.7 × 0.7 × 0.12 centered `{0, 0, 0.05}`
 
 Artists may replace the body with anything whose silhouette honors the
@@ -71,7 +75,12 @@ prim: polyline g0→g1  (the pre-authored intra-part routing graph)
 
 ```
 s@family      "fuel_tank"        s@generator "gen_tank"
-s@gen_params  {"h": <h>, "seed": <seed>}   (sprintf from parms)
+s@gen_params  {"h": <h>, "seed": <seed>}
+              sprintf("%.9g", h) — full float32 fidelity. NOT plain %g
+              (6 sig-digits would truncate below the verify tolerance).
+              h is recorded at FULL precision (never round()d): the part
+              consumes gp_h as-is, so the recorded value must equal the
+              consumed value to the bit.
 f@mass        900 * h / 2.4      f@silhouette 0.45
 s@supplies    [["fuel", 3.0]]    s@demands  []
 ```
@@ -90,17 +99,22 @@ point after instancing (they are not the part's to know).
 1. **numpy (already running, every test run)**: gate 7 rehydrates the
    GS-α tank from its placement record — gen_params checksum, mesh
    identity, port frame identity, grommet identity.
-2. **Houdini (run after install)**: `hython houdini/verify_tank_hda.py`
-   — instantiates the HDA with `h`/`seed` from a live `build()` placement
-   record and diffs: port count/position/N/up/type/size/gender, grommet
-   positions/conduits, gedge topology, body bounding box (±1e-4), and the
-   detail gen_params JSON against the Python part. Exits nonzero on any
-   drift. This is the acceptance gate for (b).
+2. **Houdini (verified live 2026-06-12, Apprentice)**: `hython
+   houdini/verify_tank_hda.py` — instantiates the HDA with `h`/`seed`
+   from a live `build()` placement record and diffs: port
+   count/position/N/up/type/size/gender, grommet positions/conduits,
+   gedge topology, body bounding box (±1e-4), and the detail gen_params
+   JSON against the Python part. **Tolerances are float32-honest**, not
+   float64-exact — the values ride float32 VEX channels and a `%.9g`
+   re-stamp, so bit-exact equality is physically impossible: gen_params
+   floats compare to 5e-7 relative (ints exact, type drift fails), mass
+   to 5e-4, silhouette to 1e-6. Exits nonzero on any drift. This is the
+   acceptance gate for (b); it passes (`ROUND TRIP PROVEN`).
 
 ## Building the HDA
 
 ```bash
-source /opt/hfs21.0/houdini_setup
+source /opt/hfs21.0.729/houdini_setup
 hython houdini/make_tank_hda.py     # writes houdini/kitmash_part_tank.hda
 hython houdini/verify_tank_hda.py   # proves the round trip
 ```
