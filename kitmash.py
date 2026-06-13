@@ -315,9 +315,10 @@ def seg_hits_aabb(p0,p1,lo,hi):
     return True
 
 class Assembler:
-    def __init__(s, faction, seed, brief, generators):
+    def __init__(s, faction, seed, brief, generators, director=None):
         s.fc=faction; s.rng=random.Random(seed); s.brief=brief
         s.generators=generators
+        s.director=director          # None => byte-identical legacy path
         s.trace=[{"ev":"seed","seed":seed,"faction":faction["name"]}]
         s.placed=[]; s.ledger=[]; s.clear=[]; s.struts=[]; s.hoses=[]
         s.strut_segs=[]   # decision records (endpoints), parallel to struts
@@ -458,7 +459,7 @@ class Assembler:
         glass. No declaration = whole-AABB anchorable (legacy). This
         restricts the repair-proposal space; it is mediation, not a new
         legality check."""
-        best=None
+        best=None; viable=[]
         node=root_side
         while node is not None:
             if getattr(node,"w_anchor",None) is not None:
@@ -477,11 +478,31 @@ class Assembler:
                     if d<0.15: continue
                     sdir=(anchor-com)/d
                     relief=0.35+0.5*np.linalg.norm(np.cross(sdir,jaxis))
+                    cand=dict(a=com,b=anchor,relief=float(relief),
+                              anchor_part=node.label,L=float(d),vol=vi)
+                    if s.director is not None: viable.append(cand)
                     if best is None or relief>best["relief"]+1e-9 or \
                        (abs(relief-best["relief"])<1e-9 and d<best["L"]):
-                        best=dict(a=com,b=anchor,relief=float(relief),
-                                  anchor_part=node.label,L=float(d),vol=vi)
+                        best=cand
             node=node.parent
+        # on_repair_choice (3b): DEFERRED — director-gated, rng-free,
+        # reorder-only. The legacy `best`-accumulator above is the byte-
+        # identical path and remains authoritative when director is None.
+        # When a director IS attached and ≥2 braces are viable, it may
+        # reorder; the no-op default (on_repair_choice -> None) keeps `best`.
+        # Full 3b wiring (replacing the accumulator with a sorted viable
+        # list) is left to the Director-agent: doing it here risks the
+        # canonical-fleet regression because the accumulator's relief/L
+        # tie-break order is load-bearing. TODO(3b): promote `viable` to the
+        # selection source once a regression-safe ordering is proven.
+        if s.director is not None and len(viable)>=2:
+            pick=s.director.on_repair_choice(
+                viable,s._repair_context(jpos,jaxis))
+            if pick is not None:
+                viable=[viable[i] for i in pick]
+                best=viable[0]
+                s.log(ev="repair_choice",anchor=best["anchor_part"],
+                      among=len(pick),relief=round(best["relief"],3))
         return best
 
     def validate(s, prop, ignore=()):
@@ -609,6 +630,21 @@ class Assembler:
               metrics=dict(strain=round(prop["strain"],3),
                            mass_left=int(s.budget["mass"])))
 
+    def _tie_context(s, sp, host):
+        """Read-only context handed to director.on_tie. No mutable internals
+        leak: families is a fresh Counter, budget is a shallow copy."""
+        from collections import Counter
+        return dict(port_type=sp.type, port_prio=sp.prio,
+                    placed_families=Counter(p.family for p in s.placed),
+                    budget=dict(s.budget), faction=s.fc["name"])
+
+    def _repair_context(s, jpos, jaxis):
+        """Read-only context for director.on_repair_choice (3b). No mutable
+        internals leak: positions are fresh copies."""
+        return dict(jpos=[float(x) for x in jpos],
+                    jaxis=[float(x) for x in jaxis],
+                    faction=s.fc["name"])
+
     def run(s, hull_gen=gen_hull):
         hull=hull_gen(s.fc,seed=s.rng.randint(0,99999))
         hull.world=[(v,f,c) for v,f,c in hull.meshes]
@@ -693,6 +729,18 @@ class Assembler:
             # one score() call per candidate, in list order — preserves the
             # rng stream exactly as the old sort(key=score) did
             scored=sorted(((score(c),c) for c in cands),key=lambda e:-e[0])
+            # on_tie (3a): director-gated, genuine-tie-only, rng-free,
+            # reorder-only. No effect when director is None.
+            if s.director is not None and len(scored)>=2:
+                s0=scored[0][0]; s1=scored[1][0]
+                if s0-s1<s.director.tie_eps:          # genuine tie ONLY
+                    ranked=[c for _,c in scored]        # candidate tuples
+                    new_order=s.director.on_tie(ranked,s._tie_context(sp,host))
+                    if new_order is not None:
+                        scored=[(scored[i][0],scored[i][1]) for i in new_order]
+                        s.log(ev="tie_break",port=sp.pid,
+                              among=[c[0].label for c in ranked],
+                              chose=ranked[new_order[0]][0].label)
             blockers=[]; placed_one=False
             for sc,(part,plugs,mates,strain) in scored:
                 R,t,res=s.mate(part,plugs,mates)
@@ -944,7 +992,7 @@ FERAL=dict(name="Feral",era=977,hull="#7d6a58",accent="#b4502e",
            strain_taste=+1.5,caps_unused=False,hose="catenary",debt=0.05)
 
 def build(faction,seed,wants,heavy=1.0,span=3.2,parent=None,mutation=None,
-          extra_gens=()):
+          extra_gens=(),director=None):
     gens=[gen_tank,gen_engine,
           lambda fc,seed=0: gen_wing(fc,seed,span=span,hand=1),
           lambda fc,seed=0: gen_wing(fc,seed,span=span,hand=-1),
@@ -952,7 +1000,7 @@ def build(faction,seed,wants,heavy=1.0,span=3.2,parent=None,mutation=None,
           gen_antenna,gen_pod]+list(extra_gens)
     brief=dict(design_g=2.5,wants=wants,
                budgets=dict(mass=11000,silhouette=3.2,parts=14))
-    a=Assembler(faction,seed,brief,gens).run()
+    a=Assembler(faction,seed,brief,gens,director=director).run()
     a.lineage=dict(parent=parent,mutation=mutation,
                    gen_params=dict(seed=seed,heavy=heavy,span=span))
     return a

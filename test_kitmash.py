@@ -315,6 +315,112 @@ def test_anchor_semantics():
           f"relief={rej[0]['metrics']['relief']})")
 
 
+# ----------------------------------------------- director no-op (gate 3c)
+class _IdentityDirector:
+    """Trivial director: tie_eps=0 means on_tie never fires on a genuine
+    tie (s0-s1 < 0 is impossible for sorted scores); on_repair_choice and
+    on_tie return None (identity) regardless. Proves the hook surface is
+    inert — present but reorder-only and rng-free."""
+    tie_eps = 0.0
+    def on_tie(self, ranked, ctx): return None
+    def on_repair_choice(self, viable, ctx): return None
+
+
+def _alpha_build(director=None):
+    return build(GUILD, 7, {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+                            "heavy_cannon": 1.4, "antenna": 0.8,
+                            "sensor_pod": 0.6}, heavy=1.0, span=3.0,
+                 director=director)
+
+
+def _world_signature(a):
+    """A geometric+stats fingerprint of a built ship: every committed
+    part's world meshes, struts, and stats. Byte-identity proxy that does
+    not require disk I/O. NB: Part.uid embeds a global monotonic counter
+    (Part._n), so two builds in one process get different #N suffixes for
+    identical geometry — we key on family+label, NOT uid, exactly as the
+    JSON export does (it never serializes uid)."""
+    sig = []
+    for p in a.placed:
+        sig.append((p.family, p.label,
+                    tuple(tuple(np.round(v, 6).ravel().tolist())
+                          for v, f, c in p.world)))
+    for v, f, c, owner in a.struts:
+        sig.append(("strut", tuple(np.round(v, 6).ravel().tolist())))
+    sig.append((len(a.placed), int(sum(p.mass for p in a.placed)),
+                len(a.struts), len(a.hoses)))
+    sig.append(tuple(tuple(map(lambda x: round(x, 6), pt))
+                     for h in a.hoses for pt in h["pts"]))
+    return sig
+
+
+def test_director_noop():
+    """3c: director=None AND a trivial identity-director both reproduce the
+    canonical GS-α byte-identical. Proves (a) the hook path is a true no-op
+    when director is None, and (b) an attached identity-director with
+    tie_eps=0 never perturbs the build (gate fires only on real ties,
+    identity-reorder is inert)."""
+    # (a) director=None matches the canonical stats and golden hose path
+    a0 = _alpha_build(director=None)
+    stats0 = (len(a0.placed), int(sum(p.mass for p in a0.placed)),
+              len(a0.struts))
+    assert stats0 == (10, 9464, 3), f"director=None broke GS-α: {stats0}"
+    pts0 = [[round(x, 3) for x in pt] for pt in a0.hoses[0]["pts"]]
+    assert pts0 == GOLDEN_ALPHA_HOSE, f"director=None hose drift: {pts0}"
+
+    # (b) identity-director (tie_eps=0, on_tie/on_repair_choice -> None)
+    # produces a build geometrically identical to director=None
+    a1 = _alpha_build(director=_IdentityDirector())
+    assert _world_signature(a0) == _world_signature(a1), \
+        "identity-director perturbed the canonical build"
+    # no hook ever fired: tie_eps=0 cannot satisfy s0-s1<0, identity returns
+    assert not [e for e in a1.trace if e["ev"] == "tie_break"], \
+        "tie_break fired under tie_eps=0 (gate should never trigger)"
+    assert not [e for e in a1.trace if e["ev"] == "repair_choice"], \
+        "repair_choice fired under identity director (should be inert)"
+
+    # full-disk byte-identity check against the regression anchor md5
+    import json, hashlib, os
+    from kitmash import export, FERAL, gen_radiator, gen_reactor, gen_turret
+    wants_g = {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+               "heavy_cannon": 1.4, "antenna": 0.8, "sensor_pod": 0.6}
+    wants_f = {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+               "heavy_cannon": 2.2, "sensor_pod": 1.0, "antenna": 0.4}
+    wants_d = {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+               "heavy_cannon": 1.8, "radiator": 2.4, "sensor_pod": 1.2,
+               "antenna": 0.8}
+    wants_e = {"engine": 3.0, "fuel_tank": 2.5, "wing": 1.6,
+               "heavy_cannon": 0.9, "turret": 2.6, "reactor": 2.3,
+               "sensor_pod": 0.4, "antenna": 0.3}
+    # Part.uid embeds a process-global monotonic counter (Part._n) that the
+    # trace serializes as part_id. To reproduce the fresh-process anchor md5
+    # byte-for-byte (prior gates in this run advanced the counter), reset it
+    # so the part_id sequence matches a clean `python kitmash.py` invocation.
+    Part._n = 0
+    A = build(GUILD, 7, wants_g, heavy=1.0, span=3.0)
+    B = build(GUILD, 7, wants_g, heavy=1.7, span=3.9,
+              parent="GS-α", mutation="heavy 1.0→1.7, span 3.0→3.9")
+    C = build(FERAL, 23, wants_f, heavy=1.4, span=3.4)
+    D = build(FERAL, 41, wants_d, heavy=1.2, span=3.2,
+              extra_gens=[gen_radiator],
+              parent="FV-γ", mutation="+radiator gene, wants reshuffled")
+    E = build(FERAL, 101, wants_e, heavy=1.0, span=3.0,
+              extra_gens=[gen_reactor, gen_turret],
+              parent="FV-γ", mutation="+reactor/turret genes, electrified")
+    tmp = "/tmp/test_director_noop_fleet.json"
+    export([("GS-α  «Lawful Mean»", A, np.array([0, -7.5, 0]), "Plate XLVII"),
+            ("GS-β  «Heavier Daughter»", B, np.array([0, 0, 0]), "Plate XLVIII"),
+            ("FV-γ  «Tape Holds»", C, np.array([0, 7.5, 0]), "Plate XLIX"),
+            ("FV-δ  «Cold Shoulder»", D, np.array([0, 15, 0]), "Plate L"),
+            ("FV-ε  «Loom»", E, np.array([0, 22.5, 0]), "Plate LI")], tmp)
+    md5 = hashlib.md5(open(tmp, "rb").read()).hexdigest()
+    os.remove(tmp)
+    assert md5 == "e6aeccfe352bba16f288785ea23e5bc3", \
+        f"canonical fleet md5 drifted: {md5}"
+    print("PASS  director no-op (director=None & identity-director both "
+          "byte-identical; md5 anchor holds, no hooks fired)")
+
+
 # ------------------------------------------------- houdini bridge (gate 7)
 def test_houdini_roundtrip():
     """The part-HDA contract, proven host-agnostically: a placement record
@@ -394,4 +500,5 @@ if __name__ == "__main__":
     test_capacity_ripup()
     test_anchor_semantics()
     test_houdini_roundtrip()
+    test_director_noop()
     print("ALL GATES PASS")
