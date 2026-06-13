@@ -31,15 +31,30 @@ USDRECORD = os.path.join(HFS, "bin", "usdrecord")
 HYTHON = os.path.join(HFS, "bin", "hython")
 
 
-def build_cam_layer(fleet_path, cam_path, root="/Fleet",
+def build_cam_layer(fleet_path, cam_path, root="/Fleet", isolate=False,
                     az_deg=32.0, el_deg=12.0, dist_factor=0.62,
                     focal=40.0, ap_h=20.0, ap_v=30.0):
-    """Write a camera+light layer that sublayers the fleet and frames it."""
-    stage = Usd.Stage.Open(fleet_path)
-    prim = stage.GetPrimAtPath(root)
+    """Write a camera+light layer for `root` and frame it.
+
+    isolate=False: sublayer the whole fleet and frame the `root` prim (the
+        neighbours stay in shot — right for the whole-fleet plate).
+    isolate=True: reference ONLY the `root` prim into a fresh /Specimen, so
+        the stacked neighbours vanish — right for a single catalogue plate.
+    """
+    cs = Usd.Stage.CreateNew(cam_path)
+    UsdGeom.SetStageUpAxis(cs, UsdGeom.Tokens.y)
+
+    if isolate:
+        spec = cs.OverridePrim("/Specimen")
+        spec.GetReferences().AddReference(os.path.abspath(fleet_path), root)
+        frame_path = "/Specimen"
+    else:
+        cs.GetRootLayer().subLayerPaths.append(os.path.abspath(fleet_path))
+        frame_path = root
+
+    prim = cs.GetPrimAtPath(frame_path)
     if not prim:
         raise SystemExit("no prim at %s in %s" % (root, fleet_path))
-
     bbc = UsdGeom.BBoxCache(
         Usd.TimeCode.Default(),
         [UsdGeom.Tokens.default_, UsdGeom.Tokens.render])
@@ -47,10 +62,6 @@ def build_cam_layer(fleet_path, cam_path, root="/Fleet",
     mn, mx = rng.GetMin(), rng.GetMax()
     center = (mn + mx) * 0.5
     diag = (mx - mn).GetLength()
-
-    cs = Usd.Stage.CreateNew(cam_path)
-    cs.GetRootLayer().subLayerPaths.append(os.path.abspath(fleet_path))
-    UsdGeom.SetStageUpAxis(cs, UsdGeom.Tokens.y)
 
     UsdLux.DomeLight.Define(cs, "/Lights/dome").CreateIntensityAttr(1.0)
     key = UsdLux.DistantLight.Define(cs, "/Lights/key")
@@ -87,10 +98,18 @@ def main():
     fleet = sys.argv[1] if len(sys.argv) > 1 else "usd/kitmash_fleet.usda"
     out = sys.argv[2] if len(sys.argv) > 2 else "houdini/kitmash_fleet_render.png"
     width = sys.argv[3] if len(sys.argv) > 3 else "800"
+    root = sys.argv[4] if len(sys.argv) > 4 else "/Fleet"
     cam_layer = out + ".cam.usda"
 
-    diag = build_cam_layer(fleet, cam_layer)
-    print("framed /Fleet (diag=%.1f) -> %s" % (diag, cam_layer))
+    # a single specimen is a horizontal craft (cone nose down -X); isolate it
+    # from its stacked neighbours and frame it squarer than the tall fleet.
+    if root != "/Fleet":
+        diag = build_cam_layer(fleet, cam_layer, root=root, isolate=True,
+                               az_deg=30.0, el_deg=12.0, dist_factor=1.15,
+                               focal=35.0, ap_h=30.0, ap_v=26.0)
+    else:
+        diag = build_cam_layer(fleet, cam_layer, root=root)
+    print("framed %s (diag=%.1f) -> %s" % (root, diag, cam_layer))
 
     cmd = [HYTHON, USDRECORD, "--renderer", "Karma CPU",
            "--imageWidth", str(width), "--complexity", "high",
