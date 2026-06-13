@@ -11,7 +11,7 @@ Python dependency, and artist-editable (greebles, panel lines, strain grunge).
 ports and grommets are load-bearing and may NEVER move; the body is a
 placeholder artists may change. Migration is a swap of the *interior*, gated.
 
-## Worked examples (native interiors built so far: 7 / 11)
+## Worked examples (native interiors built so far: 8 / 11)
 
 | Family | Builder | What it demonstrates |
 |--------|---------|----------------------|
@@ -22,6 +22,7 @@ placeholder artists may change. Migration is a swap of the *interior*, gated.
 | `reactor` | `make_reactor_hda.py` | first ROUTING body on a Z-native cyl: tapered shell (height + center-z both link to `h`) + mount box; +Z port; **2 high_volt grommets** (one h-dependent in VEX) + gedge + supplies |
 | `antenna` | `make_antenna_hda.py` | first NON-NULL `anchor_vols` (literal AABB — base box only, the mast is a whip); Z-native whip cone (seg=14) + base box; -Z port; height + center-z link to `h` |
 | `radiator` | `make_radiator_hda.py` | first family with BOTH non-empty clearance_vols (w-scaled in VEX) and a literal anchor_vols; all-BOX body (no phase concern); panel sizey links to `w`; +Z port |
+| `core_hull` | `make_hull_hda.py` | the biggest: hull box + **X-cone nose** (phase-rolled, scale-dependent tx); **7 ports** (all gender 0, varying prio, side_R/side_L tags, emitted in generator order); **5 grommets + 4-edge gedge chain**; `scale` drives L/nose/port0/grommets/mass |
 
 > **✓ Tank type-name drift — found AND fixed 2026-06-13 (v0.12).** The native
 > tank HDA was type `kitmash::part_tank::1.0` — a legacy name from when it was
@@ -101,11 +102,12 @@ conduit attrs, gedge count, `family`/`generator`, `gen_params` (float32-honest),
   tolerance (5e-7) as `mass` and `gen_params` floats — exact `==` was the wishful
   bound. (Lesson, again: a tolerance is a claim about storage.)
 
-## Remaining (4 / 11 still wrappers — the watch-list)
+## Remaining (3 / 11 still wrappers — the watch-list)
 
-`core_hull`, `heavy_cannon`, `turret`, `wing`. These are the genuinely hard
-ones (see watch-list below): all four have a geometry wrinkle the first seven
-did not. Each is a `make_<family>_hda.py` following
+`heavy_cannon`, `turret`, `wing`. These are the genuinely hard ones (see
+watch-list below): each has a geometry wrinkle (turret's tilted barrel axis,
+wing/cannon's mount_rail cluster + handedness). Each is a `make_<family>_hda.py`
+following
 the recipe, gated by `verify_native_hda.py <family>`. Watch-list: `core_hull`
 (two cyls incl. an X-cone nose + 7 ports + a 5-node fuel gedge — the biggest);
 `turret` (barrel `frame([1,0,0.35],[0,0,1])` is a *tilted* axis — not a clean X
