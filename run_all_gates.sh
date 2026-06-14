@@ -51,12 +51,18 @@ rung_usd() {
 
 rung_houdini() {
     echo "== check-houdini (needs hython — LOCAL-ONLY) =================="
-    if command -v hython >/dev/null 2>&1; then
-        hython houdini/verify_native_hda.py || return 1
+    # Discover hython on PATH first, then fall back to a standard HFS install
+    # (Houdini ships hython at $HFS/bin, which is usually NOT on PATH). The glob
+    # stays version-agnostic and portable; public CI without Houdini still SKIPs.
+    HYTHON="$(command -v hython 2>/dev/null || ls /opt/hfs*/bin/hython 2>/dev/null | sort -V | tail -1)"
+    if [ -n "$HYTHON" ] && [ -x "$HYTHON" ]; then
+        echo "   using $HYTHON"
+        "$HYTHON" houdini/verify_native_hda.py || return 1
+        "$HYTHON" houdini/test_headless.py || return 1
     else
-        echo "SKIP  hython not on PATH; this rung verifies native HDAs"
-        echo "      against the Python generator and only runs with a"
-        echo "      Houdini install. Public CI does not need it."
+        echo "SKIP  no hython on PATH or in /opt/hfs*/bin; this rung verifies"
+        echo "      native HDAs against the Python generator and only runs with"
+        echo "      a Houdini install. Public CI does not need it."
         return 0
     fi
 }

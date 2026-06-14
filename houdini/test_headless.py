@@ -15,6 +15,10 @@ Gates
   4  rehydrate round-trip— gen_params checksum holds; R·Rᵀ=I; t reproducible
   5  write_geo           — hou.Geometry populated; point counts match;
                            attribute types correct; groups exist
+  5b face export         — P3 rehydrator face provenance: per-strut-point
+                           face_cls matches the record (faces SELECT, not
+                           just exist); per-part anchor_faces detail attr
+                           round-trips field-by-field, incl. the None case
   6  attribute spot-check— sample placement point carries orient (unit quat),
                            generator name in GEN_REGISTRY, gen_params valid JSON
   7  provenance detail   — kitmash_schema == "kitmash/0.6"; trace round-trips
@@ -139,6 +143,88 @@ def gate5_write_geo(a):
     assert n_strut_prims == len(struts), \
         f"strut prim count {n_strut_prims} != {len(struts)}"
 
+def gate5b_face_export(a):
+    """P3 face-level provenance — the rehydrator EXPORTS face data on two
+    paths; this rung welds the joint shut so neither can drift silently.
+
+    (a) write_geo stamps a per-STRUT-POINT int `face_cls` (which anchor
+        class took the weld; -1 = AABB/legacy). Mirror kitmash_houdini.py:
+        424-425 — assert each strut point's face_cls equals its strut
+        record's face_cls (default -1 when None), and that at least one
+        canonical strut welded to a real face (face_cls >= 0), proving
+        faces SELECT, not merely that the attribute exists.
+    (b) write_part_geo stamps a per-PART detail `anchor_faces` JSON string.
+        Build a faced canonical part (the hull — 6 declared faces), write
+        it, parse the JSON, and assert it matches part.anchor_faces
+        field-by-field. Mirror verify_usd.py:104-122. Cover the None case.
+    """
+    import hou, numpy as np
+    import kitmash as km
+    import kitmash_houdini as kh
+
+    # ── (a) face_cls on strut points ─────────────────────────────────────
+    struts = [s for s in kh.strut_records(a) if s["kind"] == "strut"]
+    assert len(struts) > 0, "no strut records to check face_cls against"
+
+    geo = hou.Geometry()
+    kh.write_geo(geo, a, name="face_test")
+
+    strut_prims = geo.findPrimGroup("struts").prims()
+    assert len(strut_prims) == len(struts), \
+        f"strut prim count {len(strut_prims)} != {len(struts)}"
+
+    saw_real_face = False
+    for prim, st in zip(strut_prims, struts):
+        fc_raw = st.get("face_cls")
+        exp_fc = int(fc_raw) if fc_raw is not None else -1
+        if exp_fc >= 0:
+            saw_real_face = True
+        # write_geo stamps face_cls on BOTH endpoint points of the segment
+        for vtx in prim.vertices():
+            got = vtx.point().attribValue("face_cls")
+            assert int(got) == exp_fc, \
+                f"strut {st['owner']} face_cls {got} != {exp_fc}"
+    # the assertion must prove faces SELECT, not just that the attr exists
+    assert saw_real_face, \
+        "no canonical strut welded to a real face (all face_cls < 0) — " \
+        "faces are not selecting; the export is unproven"
+
+    # ── (b) anchor_faces detail attr on a faced part ─────────────────────
+    part = km.gen_hull(km.GUILD)            # 6 declared faces, incl. nose GLASS
+    assert part.anchor_faces is not None and len(part.anchor_faces) == 6, \
+        f"expected 6 hull faces, got {part.anchor_faces}"
+
+    pgeo = hou.Geometry()
+    kh.write_part_geo(pgeo, part)
+    af_str = pgeo.attribValue("anchor_faces")
+    got_af = json.loads(af_str)
+    assert got_af is not None and len(got_af) == len(part.anchor_faces), \
+        f"anchor_faces len {got_af} != {len(part.anchor_faces)}"
+    for gf, pf in zip(got_af, part.anchor_faces):
+        assert_close(gf["c"], pf["c"], tol=1e-5, msg="face.c")
+        assert_close(gf["n"], pf["n"], tol=1e-5, msg="face.n")
+        assert_close(gf["u"], pf["u"], tol=1e-5, msg="face.u")
+        assert abs(gf["hu"] - float(pf["hu"])) <= 1e-5, \
+            f"face.hu {gf['hu']} != {pf['hu']}"
+        assert abs(gf["hv"] - float(pf["hv"])) <= 1e-5, \
+            f"face.hv {gf['hv']} != {pf['hv']}"
+        assert int(gf["cls"]) == int(pf["cls"]), \
+            f"face.cls {gf['cls']} != {pf['cls']}"
+
+    # ── (b') the None case — a faceless part serializes "null" ───────────
+    # No canonical generator yields None today (all 11 families declare
+    # faces), so drive the None branch (kitmash_houdini.py:283-284)
+    # explicitly: clear the field on a fresh part and confirm it
+    # serializes to JSON null, mirroring verify_usd.py:107-109.
+    faceless = km.gen_hull(km.GUILD)
+    faceless.anchor_faces = None
+    ngeo = hou.Geometry()
+    kh.write_part_geo(ngeo, faceless)
+    none_str = ngeo.attribValue("anchor_faces")
+    assert json.loads(none_str) is None, \
+        f"faceless part anchor_faces should be null, got {none_str!r}"
+
+
 def gate6_attribute_spotcheck(a):
     import hou, numpy as np
     import kitmash_houdini as kh
@@ -219,6 +305,7 @@ def main():
     gate("3 pure-Python bridge",   lambda: gate3_pure_python(a))
     gate("4 rehydrate round-trip", lambda: gate4_rehydrate(a))
     gate("5 write_geo",            lambda: gate5_write_geo(a))
+    gate("5b face export",         lambda: gate5b_face_export(a))
     gate("6 attribute spot-check", lambda: gate6_attribute_spotcheck(a))
     gate("7 provenance detail",    lambda: gate7_provenance(a))
     gate("8 multi-faction",        gate8_multi_faction)

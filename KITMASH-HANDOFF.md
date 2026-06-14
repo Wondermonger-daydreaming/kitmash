@@ -659,7 +659,9 @@ trimmed — which is physically honest. Live proof: FV-ε's turret braces jumped
 relief 0.35→0.81 (box could only offer a near-parallel weld; the face path found
 a normal-on one). Legality stayed at ~7 checks.
 
-**Gate 9** (`test_face_anchor_semantics`, `test_kitmash.py` now 10 gates) proves
+**Gate 9** (`test_face_anchor_semantics`; `test_kitmash.py` prints 11 top-level
+PASS gates — the labels run to "gate 10" but there are 11; earlier "10 gates"
+phrasings were an off-by-one) proves
 the faces SELECT and are not decoration (the v0.7 lesson): a class-0 face refuses
 the weld (arm starves); identical geometry at class 1 vs 2 scales recorded relief
 by *exactly* `ANCHOR_CLASS_RELIEF[2]/[1]` = 1.538 (equal reliefs would mean the
@@ -679,14 +681,41 @@ the breadth. Honest status:
    `cls 0` glass faces sterile. md5 unchanged (leaves never anchor struts in the
    canonical fleet). *(The original DEFERRED text here claimed only the hull was
    faced — Cassandra C3 caught it as a provenance lie; corrected.)*
-2. **DCC export — DONE for USD, host-agnostic for Houdini.** `anchor_faces` now
-   ride **`primvars:kitmash:anchor_faces`** (USD, round-trip in `verify_usd.py`,
-   857 checks green) and **`s@anchor_faces`** detail attr + **`i@face_cls`** strut
-   point attr (Houdini `write_part_geo`/`write_geo`). The committed
-   `usd/kitmash_fleet.usda` carries 47 face primvars. **Still open:** live
-   *hython* verification of the Houdini face attrs (`verify_native_hda.py` has the
-   check block but it is hython-gated — verified host-agnostically only; run it
-   under `/opt/hfs21.0.729/bin/hython` before the next Houdini beauty render).
+2. **DCC export — DONE for USD; live-hython sign-off DONE, and it surfaced a
+   native-HDA face gap.** `anchor_faces` ride **`primvars:kitmash:anchor_faces`**
+   + **`face_cls`** (USD, round-trip in `verify_usd.py:104+`) and travel the
+   Houdini rehydrator (`kitmash_houdini.py` `write_part_geo`/`write_geo`). The
+   committed `usd/kitmash_fleet.usda` carries **47** face primvars and
+   `verify_usd.py` runs **857** checks — both re-derived live this session
+   (`grep -c anchor_faces usd/kitmash_fleet.usda` → 47; `verify_usd.py` ok-lines → 857).
+
+   **Live-hython sign-off (this session, doctrine-clean resolution).** Running
+   `/opt/hfs21.0.729/bin/hython houdini/verify_native_hda.py` returned GREEN with
+   `NATIVE ROUND TRIP PROVEN` — but the gate's `anchor_faces` block was guarded
+   `if g.findGlobalAttrib("anchor_faces") is not None:` and **silently skipped on
+   every family**: the 11 `make_*_hda.py` generators bake **no `anchor_faces`** at
+   all (only a static `anchor_vols="null"` stub). Green was hiding a body — the
+   v0.7-lesson-4 / Cassandra-C3 failure reproduced in the gate billed as a
+   formality. **Doctrine resolution (ARCHITECTURE.md inv 7 & 8):** the native part
+   HDA carries **body + ports ONLY**; anchor provenance (`anchor_faces`,
+   `face_cls`) rides the rehydrator + USD primvars, NOT the static native HDA.
+   Faces are proven on the **USD rung** (`verify_usd.py`, already in the ladder)
+   and the **rehydrator rung** (`test_headless` gate5); the **native gate is
+   hardened** to a LOUD always-run assertion that native HDAs carry *no* baked
+   `anchor_faces`, so the silent skip can never recur. Full receipt:
+   `_staging/hython-signoff-p3.md`. **Reconciled against live output:**
+   `verify_native_hda.py` = **828** checks, of which **44** are the new
+   "native carries no baked `anchor_faces`" assertions that now *execute* (were 0 —
+   silently skipped) across the 11 families × seeds; `test_headless.py` = **9/9**
+   gates with the new rehydrator face round-trip (`gate5b_face_export`: `face_cls`
+   on struts asserts ≥1 canonical strut welded to a real face, plus `anchor_faces`
+   detail-attr field-by-field on the 6-face hull). A **second silent-skip was caught
+   one level up**: `run_all_gates.sh`'s `check-houdini` rung gated on
+   `command -v hython`, which fails on this host (hython is at
+   `/opt/hfs21.0.729/bin/hython`, off PATH) — so `run_all_gates.sh all` had reported
+   ALL GREEN while never running these rungs. The rung now globs `/opt/hfs*/bin` and
+   actually executes them (verified: `using /opt/hfs21.0.729/bin/hython`,
+   NATIVE ROUND TRIP PROVEN, test_headless 9/9, full ladder ALL GREEN).
 3. **Cassandra pass — DONE.** Full adversarial audit at
    `_staging/cassandra-p3.md`: 6 charges, all HOLD except one CONFIRMED latent
    (C2c, a zero-length normal normalized to NaN and a NaN-relief brace *won*
@@ -696,10 +725,13 @@ the breadth. Honest status:
    regression assertion. Relief stays bounded at 0.85/brace (0.9775 composed) —
    duplicate faces buy nothing.
 
-**Genuinely remaining (small):** live-hython sign-off on the Houdini face attrs;
-the u-edge triangulation candidate (Cassandra D2, an optimization, would
-re-baseline so deferred deliberately); and the AABB path is now dead code on the
-canonical fleet (correct for custom `anchor_faces=None` parts, just unexercised).
+**Genuinely remaining (small):** the live-hython sign-off is now **DONE** (it
+surfaced the native-HDA face gap above; resolved doctrine-clean — native =
+body+ports, faces proven on the USD rung + the rehydrator rung, native gate
+hardened so the silent-skip cannot recur). Still open: the u-edge triangulation
+candidate (Cassandra D2, an optimization, would re-baseline so deferred
+deliberately); and the AABB path is now dead code on the canonical fleet (correct
+for custom `anchor_faces=None` parts, just unexercised).
 
 ## Roadmap (priority order)
 
@@ -722,7 +754,8 @@ canonical fleet (correct for custom `anchor_faces=None` parts, just unexercised)
    smoke-tested) + headless rehydrator + demo hip. See the v0.7-live
    section for the goblins found and fixed. Follow-up (native interiors):
    ~~COMPLETE in v0.12 — 11/11 families native~~ (gate `verify_native_hda.py`
-   784/784 green across all families; the v0.10 "2/11" status is superseded).
+   828/828 green across all families — 784 pre-v0.8.1, +44 face-absence assertions
+   added by the P3 hython sign-off; the v0.10 "2/11" status is superseded).
    See the v0.10/v0.12 sections and `houdini/NATIVE-MIGRATION.md`.
 6. ~~**Agent loop**~~ DONE in v0.13 (the creative director, `director.py`) and
    EXTENDED in v0.7 (this pass): diversity-aware survivor selection + bureaus.

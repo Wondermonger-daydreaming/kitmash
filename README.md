@@ -19,11 +19,11 @@ gates, and `git log` (2026-06-14).
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Core assembler (`kitmash.py`) | **done** | Pure Python, numpy only, host-agnostic. Mate / spine / auction / backjump / routing-v2 / loom all implemented. Byte-exact regression anchor (md5 `80ddaccccc594b2a7cc8c7b40a129086`; re-baselined from `e6aeccfe…` by the P3 hull weld-faces). |
-| Houdini native HDAs | **done** | 11/11 families migrated to native SOP/VEX interiors (v0.12). The generalized gate `houdini/verify_native_hda.py` is 784/784 green across all families. The Python-SOP wrappers in `houdini/hda/` remain as fallback; consumers install native-last. |
+| Houdini native HDAs | **done** | 11/11 families migrated to native SOP/VEX interiors (v0.12). The generalized gate `houdini/verify_native_hda.py` is 828/828 green across all families (now includes a live-hython assertion that native HDAs carry **no** baked `anchor_faces` — anchor provenance rides the rehydrator + USD, per invariants 7 & 8). The Python-SOP wrappers in `houdini/hda/` remain as fallback; consumers install native-last. |
 | USD bridge (`kitmash_usd.py`) | **done** | `primvars:kitmash:*` schema, round-trip proven in both `usd-core` (license-free) and Houdini's `pxr`. `verify_usd.py` passes. |
 | Agent-loop director (`director.py`) | **done** | Creative-director loop (roadmap item 6): brief authoring, tie-only hooks, `review(trace) -> next_brief`, breeding, scarcity shocks, Goodhart firewall. No per-port LLM calls. |
 | Catalogue | **done** | `make_catalogue.py` (fleet) and `make_evolved_catalogue.py` (bred fleet) emit trace-grounded captions + plates (Borges catalogue, roadmap item 7). |
-| Tests | **done** | `test_kitmash.py` = **10 gates**, all green. `test_director.py` = **7 gates**, all green. |
+| Tests | **done** | `test_kitmash.py` = **11 gates**, all green. `test_director.py` = **7 gates**, all green. The Houdini rung (`check-houdini`) adds `verify_native_hda.py` (828) + `test_headless.py` (9) under hython. |
 
 ## Dependency tiers
 
@@ -84,7 +84,7 @@ specific interpreter.
 # build a fleet → JSON (the byte-exact reference fleet)
 python3 kitmash.py fleet.json
 
-# run the assembler gates (10 gates)
+# run the assembler gates (11 gates)
 python3 test_kitmash.py
 
 # run the director gates (7 gates)
