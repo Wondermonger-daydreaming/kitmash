@@ -1,105 +1,95 @@
 # KitMash
 
-**A port-based procedural kitbash assembler.** A format plus an algorithm
-family for generating endless, coherent, *provenance-rich* assemblies —
-spaceships in the reference slice, but the schema is kingdom-agnostic.
+A deterministic, provenance-traced spaceship kitbash assembler. Ports are
+points; legality is dumb (~7 checks that never grow); taste lives in the
+sampler and the director, never in the legality grammar. Meshes are cached
+opinion — the recipe and the ledger are truth. Given a brief (faction, seed,
+wants, budgets), `kitmash.py` assembles a coherent ship and emits a complete
+trace: every commit, reject-with-reason, strut, adapter, auction, and hose is a
+logged event you can replay (identical ship) or perturb (counterfactual
+sibling). The same JSON drives a self-contained three.js viewer, a USD export
+with `primvars:kitmash:*` provenance, and a Houdini rehydrator that instances
+artist-grade part HDAs from the recorded decisions.
 
-> **Thesis:** infinite generation is easy; infinite *provenance* is the art.
-> The mesh is a cached opinion; the JSON is the truth.
+## Status
 
-![KitMash fleet viewer](https://img.shields.io/badge/deps-numpy_only-blue)
-![tests](https://img.shields.io/badge/gates-8%2F8_passing-brightgreen)
+Verified against `KITMASH-HANDOFF.md`, the per-version sections, the test
+gates, and `git log` (2026-06-13).
 
-## What it does
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Core assembler (`kitmash.py`) | **done** | Pure Python, numpy only, host-agnostic. Mate / spine / auction / backjump / routing-v2 / loom all implemented. Byte-exact regression anchor (md5 `e6aeccfe352bba16f288785ea23e5bc3`). |
+| Houdini native HDAs | **done** | 11/11 families migrated to native SOP/VEX interiors (v0.12). The generalized gate `houdini/verify_native_hda.py` is 784/784 green across all families. The Python-SOP wrappers in `houdini/hda/` remain as fallback; consumers install native-last. |
+| USD bridge (`kitmash_usd.py`) | **done** | `primvars:kitmash:*` schema, round-trip proven in both `usd-core` (license-free) and Houdini's `pxr`. `verify_usd.py` passes. |
+| Agent-loop director (`director.py`) | **done** | Creative-director loop (roadmap item 6): brief authoring, tie-only hooks, `review(trace) -> next_brief`, breeding, scarcity shocks, Goodhart firewall. No per-port LLM calls. |
+| Catalogue | **done** | `make_catalogue.py` (fleet) and `make_evolved_catalogue.py` (bred fleet) emit trace-grounded captions + plates (Borges catalogue, roadmap item 7). |
+| Tests | **done** | `test_kitmash.py` = **9 gates**, all green. `test_director.py` = **7 gates**, all green. |
 
-`kitmash.py` (~800 lines, numpy only, host-agnostic) grows assemblies by
-mating typed, gendered, size-banded **ports** under a transactional
-`propose → reserve → validate → commit` loop. Failures are never silent —
-they become *form*, with a recorded reason:
+## Dependency tiers
 
-| Failure | Mediation |
-|---|---|
-| Size strain | gasket / adapter collar |
-| Bending moment over joint capacity | strut (relief measured by brace geometry) |
-| Two parts want the same emptiness | **auction** — bid = prio × score × scarcity |
-| Every candidate dies on the same blocker | **conflict-directed backjump** (bounded, traced) |
-| Channel out of capacity, no alternative | **rip-up-and-reroute** — the squatter is evicted and reroutes |
-| Fuel and high-voltage in one channel | never — the segregation matrix prunes it at graph build |
-| Unmet fuel demand | a cold, scavenged engine — not an error |
-| Unfilled port | blanking cap (guild) or left open, taped (feral) |
+KitMash is layered so the public CI surface needs no DCC license:
 
-Hoses route over a **channel graph** with real capacity reservation, and a
-channel already carrying a compatible hose costs 0.55× for the next one —
-the **loom discount**: harnesses emerge from economics, not authoring.
-
-Every decision appends to an `assembly_trace`. Replay the trace and you get
-the identical ship; perturb it and you get a counterfactual sibling.
-Factions are parameter cultures: the High Guild builds with safety factor
-2.0 and zero debt tolerance; the Feral fleet flies at 1.1 with 5% overdraft
-and visible tape.
-
-## Quickstart
-
-```bash
-pip install numpy
-python3 kitmash.py fleet.json        # generate the five-ship fleet
-python3 make_viewer.py fleet.json    # rebuild the self-contained viewer
-python3 test_kitmash.py              # run the eight verification gates
-```
-
-Then open `kitmash-fleet.html` — drag to orbit, click a plate, and watch
-the trace ticker replay every commit, strut, auction, and rejection that
-shaped the hull.
-
-## The fleet
-
-| Ship | Faction | Story told by the trace |
-|---|---|---|
-| GS-α «Lawful Mean» | High Guild | the baseline: 3 struts, one adapter collar |
-| GS-β «Heavier Daughter» | High Guild | α's mutant child — heavier cannons starve her sensors at 99.7% of mass budget |
-| FV-γ «Tape Holds» | Feral | safety factor 1.1, debt tolerated, ports left open |
-| FV-δ «Cold Shoulder» | Feral | carries a clearance-hogging radiator that loses four auctions, honestly |
-| FV-ε «Loom» | Feral | electrified: a reactor feeds two turrets; the second feed rides the first one's channel because the loom made it cheapest, and neither may touch the fuel trunk |
-
-## Doctrine (the part that matters)
-
-1. **Legality stays dumb; taste lives in the sampler.** ~7 legality checks,
-   ever. "Ships look wrong" bugs are fixed by reweighting the scorer.
-2. **Mediate failures visibly, don't reject silently.**
-3. **Trace everything.** The trace is the assembly's genome.
-4. **Propose → reserve → validate → commit.** Geometry is never instanced
-   before the reservation ledger clears — which is what makes placement
-   *reversible* (auctions can evict; backjumps can undo).
-5. **The artist pre-authors knowledge where knowledge lives.** Routing
-   graphs live inside parts; the router only stitches the gaps.
-
-The full schema (ports, grommets, capacity tables, segregation matrix),
-algorithms (cluster fingerprints, symmetry-snapped mating, tree-fold spine
-solver, A* hose routing), hard-won lessons, and roadmap live in
-[KITMASH-HANDOFF.md](KITMASH-HANDOFF.md) — the project's living ledger.
+- **Pure-Python core** — `kitmash.py`, `director.py` and their tests need only
+  **numpy**. Runs anywhere Python runs.
+- **USD bridge** — `kitmash_usd.py` and `verify_usd.py` need **`usd-core`**
+  (the `pxr` module: `pip install usd-core`). It is license-free and needs no
+  Houdini install. This cleanly separates **public CI** (pure-Python + usd-core,
+  runnable in any container) from **local DCC verification**.
+- **Houdini gates** — the native-HDA and rehydrator gates
+  (`houdini/verify_native_hda.py`, `houdini/test_headless.py`) need **`hython`**
+  (a Houdini install). These are local-only and skipped in public CI.
 
 ## Roadmap
 
-- [x] v0.4 — engine-room hardening (transactional placement, true tree-fold
-      spine, measured strut relief) — driven by convergent cross-model review
-- [x] v0.5 — clearance auctions + conflict-directed backjumping
-- [x] v0.6 — Routing v2: channel capacity reservation, congestion rip-up,
-      segregation enforcement, the loom discount
-- [ ] Anchorable-surface semantics for struts
-- [ ] USD export (`kitmash:` namespaced primvars)
-- [x] Houdini port — Python SOP + part-HDA contract + hoses→sweep (`houdini/`); HDA generators in progress
-- [ ] Agent loop — brief author / tie-break hooks / trace review
-- [ ] The Borges catalogue
+Done:
 
-## Provenance
+- [x] Engine-room hardening (uncommit, transactional eviction) — v0.4
+- [x] Auction + conflict-directed backjumping — v0.5
+- [x] Routing v2 (channels, congestion, segregation, the loom) — v0.6
+- [x] Houdini port (Python SOP + 11 part HDAs + headless rehydrator), live-verified under hython — v0.7
+- [x] Anchorable surface semantics (AABB volumes) — v0.8
+- [x] USD export (`primvars:kitmash:*`, dual round-trip) — v0.9
+- [x] Native HDA interiors, 11/11 families — v0.12
+- [x] Agent-loop director (creative director, brief/hooks/review) — v0.13
+- [x] Borges catalogue (plates + trace-grounded captions) — v0.11 / v0.13
 
-Designed conversationally and built across sessions in June 2026 — a
-human–AI collaboration in which the human stress-tests each design by
-finding the places it quietly lies about being finished, and external AI
-reviewers supplied convergent critiques (that's how the v0.4 spine fix
-happened). The development history, including two diary entries from the
-build days, lives in the authors' lab archive.
+Open (honestly unticked):
 
-## License
+- [ ] **Face-level anchorable surfaces.** Today only AABB anchor *volumes*
+      exist — a strut welds anywhere inside a declared box, with no
+      surface-normal semantics. Face tags / surface normals are the refinement.
+- [ ] **USD as referenced assets.** The current export carries a cartoon `/geo`
+      Mesh; the next step is `references` / `payload` to per-family part-asset
+      USDs (the USD twin of the part HDAs).
+- [ ] Higher-density routing follow-ups: bipartite demand matching, negotiation
+      rounds, geometric min-distance for segregated parallel runs, per-ctype
+      hose styling in the viewer.
 
-MIT — see [LICENSE](LICENSE).
+(Other deliberate cheats are catalogued in `KITMASH-HANDOFF.md` §"Current state
+& known cheats".)
+
+## Quickstart
+
+The core needs only **numpy**; the USD gate also needs **usd-core**
+(`pip install numpy usd-core`). Use any Python that has them — the examples
+below use `python3`; set `PY=/path/to/python` to point the gate ladder at a
+specific interpreter.
+
+```sh
+# build a fleet → JSON (the byte-exact reference fleet)
+python3 kitmash.py fleet.json
+
+# run the assembler gates (9 gates)
+python3 test_kitmash.py
+
+# run the director gates (7 gates)
+python3 test_director.py
+
+# run the whole public gate ladder (core + director + usd) with a summary
+./run_all_gates.sh                 # or:  PY=.venv/bin/python ./run_all_gates.sh
+```
+
+`run_all_gates.sh` has named rungs (`check-core`, `check-director`, `check-usd`,
+`check-houdini`, `catalogue`); with no argument it runs the three public rungs.
+See `ARCHITECTURE.md` for the 12 invariants and `ARTIFACTS.md` for the artifact
+policy.

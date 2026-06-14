@@ -485,16 +485,18 @@ class Assembler:
                        (abs(relief-best["relief"])<1e-9 and d<best["L"]):
                         best=cand
             node=node.parent
-        # on_repair_choice (3b): DEFERRED — director-gated, rng-free,
-        # reorder-only. The legacy `best`-accumulator above is the byte-
-        # identical path and remains authoritative when director is None.
-        # When a director IS attached and ≥2 braces are viable, it may
-        # reorder; the no-op default (on_repair_choice -> None) keeps `best`.
-        # Full 3b wiring (replacing the accumulator with a sorted viable
-        # list) is left to the Director-agent: doing it here risks the
-        # canonical-fleet regression because the accumulator's relief/L
-        # tie-break order is load-bearing. TODO(3b): promote `viable` to the
-        # selection source once a regression-safe ordering is proven.
+        # on_repair_choice (3b): PROMOTED — director-gated, rng-free,
+        # reorder-only. The legacy `best`-accumulator above remains the
+        # byte-identical path and stays authoritative when director is None
+        # OR when on_repair_choice returns None. When a director IS attached,
+        # ≥2 braces are viable, AND its repair policy is active (flag ON), it
+        # may hand back a permutation; we then commit the brace at the HEAD of
+        # that permutation INSTEAD of the legacy argmin. Byte-identity on the
+        # canonical fleet is preserved by the director itself: rank_braces uses
+        # the SAME (-relief, L) key the accumulator does, so the director only
+        # returns a non-None permutation when its head genuinely differs from
+        # the legacy committed brace (never on canonical input) — otherwise it
+        # returns None and the accumulator's `best` rides through untouched.
         if s.director is not None and len(viable)>=2:
             pick=s.director.on_repair_choice(
                 viable,s._repair_context(jpos,jaxis))

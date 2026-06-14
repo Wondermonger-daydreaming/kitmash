@@ -198,7 +198,11 @@ as the slope.
 
 ---
 
-## TRIAGE
+## Original triage — SUPERSEDED by the Resolution above (archival)
+
+*The items below are the ORIGINAL adversarial triage. Charges 2 & 3 were
+subsequently FIXED — see the Resolution section above. Retained for provenance,
+not as open work.*
 
 ### CRITICAL (fix before commit)
 1. **Goodhart detector false negative (Charge 3, director.py:481).** The detector is blind to
@@ -231,3 +235,189 @@ as the slope.
 *A green gate can hide a body pointing backwards. Two of the six guards here are pointing the
 right way but with their eyes closed. The fleet builds, the wall holds, the anchor is byte-exact —
 but the lineage-pathology detector watches the slope and forgets the cliff it's already standing on.*
+
+---
+
+## v0.7 Adversarial Pass — diversity selection + bureaus (2026-06-13)
+
+*Second Cassandra pass, branch `v0.7-coherence-and-diversity`. New surface: diversity-aware
+`select_survivors` (§2a) and the four bureaus (§2c). I assume every green test hides a body and
+trust only what reproduces at the command line. Tooling: `../.venv/bin/python` (numpy present).
+No source modified.*
+
+**Headline:** All three directive charges HOLD. The eligibility filter in `select_survivors` is a
+genuine hard pre-filter — no broken ship buys a survival slot on novelty even at fitness 99 with
+`diversity_weight` cranked to 0.99. The firewall survives the bureau refactor: every bureau
+reweights the SAME diagnosis-only terms; no `score()` channel exists, and no bureau co-climbs with
+the family-stack exploit. **One latent WEAK finding** (not a directive charge, found while tracing):
+the `best` / `best_overall` selection at director.py:604 / :633 ranks ships by raw fitness with NO
+eligibility filter — asymmetric with `select_survivors`. Unreachable with the current seeds (no
+illegal ship ever tops fitness), but it is the only place an illegal-but-high-fitness ship could be
+crowned and fed into `history` → `author_brief`. Deferred, not blocking.
+
+### Quick confirmations (re-derived, not trusted)
+- Canonical md5: `../.venv/bin/python kitmash.py /tmp/cass_fleet.json && md5sum` →
+  `e6aeccfe352bba16f288785ea23e5bc3` ✓ (anchor holds).
+- `test_director.py` → ALL DIRECTOR GATES PASS (7/7). `test_kitmash.py` → ALL GATES PASS (9/9).
+- Survivors across real runs, INDEPENDENT `no_hard_overlaps` re-check on each `assembler` (not the
+  cached flag) + `demand_unmet` sum: `evolve(3,10,0)` **0 violations**; `evolve(3,6,0)` **0
+  violations**.
+- Diversity genuinely moved off the flat 0.333: `evolve(3,10,0)` → `[0.3, 0.4, 0.5]`;
+  `evolve(3,6,0)` → `[0.5, 0.667, 0.667]`. Off-0.333 = True both runs.
+
+---
+
+### Charge A — Can a broken ship win a survival slot on novelty? VERDICT: HOLDS
+
+**Claim:** eligibility (`legal AND sum(demand_unmet)==0`, director.py:794–796) is a HARD pre-filter
+that runs BEFORE any novelty score; a signature reading "novel" because a required family is MISSING
+(a broken ship) can never buy a survivor slot.
+
+**Reproduction.** Fixtures fed directly to `select_survivors`: a fitness-99 maximally-novel-but-
+ILLEGAL ship and a fitness-99 novel-but-UNFUELED (`demand_unmet={no_route:2}`) ship, mixed with
+legal+fueled fitness-6..8 ships.
+```
+CHARGE A — selected: ['LEGAL-A', 'LEGAL-B', 'LEGAL-C']     # both broken ships excluded
+  no broken ship in survivors: True
+```
+Stress with `diversity_weight=0.99` (novelty almost fully dominant) + a broken ship carrying a
+UNIQUE 4-family signature against 6 legal ships sharing one signature:
+```
+div_weight=0.99 selected: ['L0','L1','L2','L3','L4']       # broken-unique present?: False
+unfueled-unique selected: ['L0','L1','L2','L3','L4']       # present?: False
+```
+The filter precedes the marginal-novelty loop by construction (director.py:794 vs the `while`
+at :807), so cranking `diversity_weight` cannot reach across it.
+
+**Edge — every ship broken (`pool = eligible or ships`, director.py:799).** Returns the raw pool
+(broken ships), e.g. `['B1','B2']`, none legal+fueled. This is the documented degenerate fallback so
+`evolve()` never starves. **Safe in practice:** it only triggers when ZERO ships are eligible, and
+the bureau seeds never produce such a generation (the 0-violation runs above). It is a starvation
+guard, not a novelty-bypass — novelty plays no role on this path. Empty input → `[]`.
+
+VERDICT: **HOLDS.** Novelty is structurally downstream of eligibility; no broken ship is selectable
+while any eligible ship exists.
+
+---
+
+### Charge B — Does diversity_weight or any bureau open a NEW score()→fitness channel? VERDICT: HOLDS
+
+**Claim:** `external_fitness` reads ONLY the post-hoc diagnosis; the bureau table reweights the same
+diagnosis-only terms; no argument carries a `score()` value.
+
+**Static trace.** `fitness_terms(diag, lineage_ctx=None)` (director.py:727) and
+`external_fitness(s, diag, bureau=None, lineage_ctx=None)` (director.py:767). Every read in the
+fitness path is a `diag` key: `{adapters, demand_unmet, families, hoses, legal, monoculture, parts,
+repairs, strut_per_part}`. The only `score` tokens in the whole fitness path are five DOCSTRING
+mentions — zero code reads it. `lineage_ctx` carries only `sibling_sigs`, each a `_story_sig(diag)` =
+`(frozenset(families), frozenset(rejects))` — pure diagnosis, no geometry, no `score()`.
+`diversity_weight` lives entirely inside `select_survivors` and never touches `external_fitness`.
+
+**Dynamic attack — family-stack under every bureau** (game `score()` by hammering one family; compare
+`external_fitness` of the gamed ship vs the balanced ship):
+```
+                 balanced   stacked
+None             10.6016    5.5556    stack < bal
+Guild-Structural 10.0344    6.8704    stack < bal
+Feral-Repair      8.1008    2.5278    stack < bal
+Service-Network   6.7008    3.3278    stack < bal
+Austerity        11.7680    6.8130    stack < bal
+```
+No bureau rewards the stack. (The naive stack also goes unfueled, so to remove that free help I
+re-ran with a LEGAL+FUELED wing-stack: `bal None-fit 10.602` vs `stk 8.405` — still lower. The
+sampler's own `1/(1+1.5n)` divisor suppresses repeats, so a high want cannot actually pile one
+family without losing the diversity term.)
+
+**Feral-Repair specific (gratuitous repairs):** confirmed that under Feral, a more-scarred ship
+(6 struts / 4 repairs) scores HIGHER than a clean one (8.5339 > 5.9339) while the None objective
+reverses it (8.2344 < 8.9011). This is the **intended inversion** (spec: "the repair scars ARE the
+aesthetic"), not a `score()` channel — `bracing`/`repair` are pure diagnosis terms. See Charge C for
+whether it is gameable.
+
+**Austerity specific (sibling-trace channel):** `antirepeat` reads `sibling_sigs`; collide → 6.2000,
+novel → 9.2000. The channel responds only to whether THIS ship's `(families, rejects)` matches
+already-judged siblings — all diagnosis-derived. No sampler-controllable quantity enters.
+
+VERDICT: **HOLDS** for every concern. The firewall is enforced in exactly one place
+(`fitness_terms`), and the bureau refactor did not widen it.
+
+---
+
+### Charge C — Do bureau objectives stay anti-correlated with the sampler? VERDICT: HOLDS (with one intended-inversion note)
+
+**Claim:** for each of the 4 bureaus, the sampler-gamed (family-stacked) ship scores no higher than
+the balanced ship.
+
+**Reproduction.** Same table as Charge B: under all five objectives the stacked ship scores strictly
+lower (None 5.56<10.60, Guild 6.87<10.03, Feral 2.53<8.10, Service 3.33<6.70, Austerity 6.81<11.77).
+No accidental co-climb. The two non-obvious bureaus checked individually:
+
+- **Service-Network:** rewards `service` (reactor/turret/radiator present) + `plumbing` (hoses). A
+  family-stacked ship lacks service families and routing, so it scores low (3.33). Anti-correlated.
+- **Austerity:** `antirepeat` weight 3.0 means a ship retelling its siblings' story is heavily
+  penalised; the stack (monoculture story) loses. Anti-correlated.
+
+**Feral-Repair — intended inversion vs gameable exploit (the directive's explicit ask).** Feral
+DOES reward a worse-engineered (more-braced) ship over a cleaner one — by design. The test for
+"exploit" is whether a sampler can drive fitness UP without bound by manufacturing failures. It
+cannot, because the climb is **capped and gated**:
+- `bracing = min(2.0, spp/OK)` and `repair = min(2.0, (repairs+adapters)/3)` are both **saturated at
+  2.0** (director.py:743–745). Past the cap, more scars add nothing.
+- More importantly, a ship that fails so hard it goes **illegal or unfueled is filtered out of
+  `select_survivors`** before fitness is consulted. I confirmed an over-scarred ship that loses
+  legality scores feral_fit=9.7672 (higher than the legal scarred 8.5339, because only the `legal`
+  term zeroes) — BUT it is ejected by the Charge-A eligibility filter, so the perverse score never
+  buys a survivor slot.
+
+So Feral's inversion is the **intended aesthetic**, bounded by saturation and walled by eligibility —
+not a runaway exploit.
+
+VERDICT: **HOLDS.** No bureau co-climbs with the sampler; Feral's reward for scars is intended,
+capped, and eligibility-gated.
+
+---
+
+### Latent finding (NOT a directive charge) — `best` / `best_overall` skip the eligibility filter. VERDICT: WEAK
+
+While tracing every fitness-ranking site I found an asymmetry: `select_survivors` filters on
+eligibility, but `gen_record["best"]` (director.py:604, `max(gen_record["ships"], key=fitness)`) and
+`lineage["best_overall"]` (director.py:633) rank ALL ships by raw fitness with **no eligibility
+filter**.
+
+**Reproduction (ranking logic, two-ship fixture, Feral-Repair):**
+```
+gen 'best' (line 604, NO eligibility filter) = ILLEGAL-highfit  legal= False
+survivors (filtered)                          = ['legal-lowfit']
+```
+If a generation ever produced an illegal-but-top-fitness ship (most reachable under Feral-Repair,
+whose `bracing`+`repair` terms climb to 9.77 while `legal` zeroes), it would be crowned `best` and
+`best_overall`, AND `best["brief"]` feeds `history` (director.py:624) → `author_brief` → the next
+brief. The diversity reward would then steer the lineage off a DEAD ship.
+
+**Why WEAK, not BROKEN:** unreachable with the shipped seeds. In `evolve(3,10,0)`, `evolve(3,6,0)`,
+and `evolve(2,3,0)` the gen-best and best_overall are ALL legal+fueled (re-derived: 0 bad). The body
+exists but no current seed walks into it. It becomes BROKEN the moment a brief (or a future bureau)
+can produce a high-fitness illegal ship.
+
+---
+
+### TRIAGE
+
+**CONFIRMED (must fix before commit):** none. All three directive charges HOLD; the anchor, tests,
+survivor health, and diversity gains all re-derive clean. Nothing blocks the commit.
+
+**DEFERRED (with reason):**
+1. **`best`/`best_overall` skip eligibility (director.py:604, :633) — WEAK, latent.** Defer:
+   unreachable with current seeds (0 bad bests across three real runs). Cheap hardening when touched:
+   reuse the `select_survivors` eligibility predicate when picking `best`/`best_overall`, or fall
+   back to raw only if no eligible ship exists (mirror `pool = eligible or ships`). Add a test that
+   injects an illegal high-fitness ship and asserts it is not crowned.
+2. **Charge-A all-broken fallback (`pool = eligible or ships`, director.py:799) returns broken
+   ships.** Defer: documented starvation guard, only fires when zero ships are eligible (never in
+   real runs), and novelty plays no role on that path. Worth a one-line log/warning when the fallback
+   triggers so a degenerate generation is visible in the lineage record.
+
+*The wall held the refactor. The bureaus pull in genuinely different directions yet every one of them
+still prefers a live, diverse ship to a gamed monoculture — and the eligibility filter is a real
+gate, not a painted door. The one crack is cosmetic today: `best` looks at fitness without first
+asking whether the ship is alive, and only Feral's inverted objective could ever make that matter.*

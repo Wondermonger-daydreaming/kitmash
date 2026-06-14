@@ -306,14 +306,24 @@ def test_goodhart_detector():
     assert d.lineage_pathology(7.0, 0.33, 7.0, 0.33) is None
 
     # the verification rider must NOT inflate on a healthy, stable, converged
-    # fleet (Cassandra charge 2): many legal+fueled ships, low flat diversity.
+    # fleet (Cassandra charge 2 / directive P4): the REALISTIC case is >=8 ships
+    # with IDENTICAL *rich* (legal+fueled+multi-family) signatures, all healthy
+    # — the actual body that occurs in evolve(). The masking bug the audit found
+    # was a 2-ship disjoint case that never reached convergence; this exercises
+    # a converged-rich fleet of 8 ships sharing one 4-family signature.
+    rich_sig = {"engine": 1, "fuel_tank": 1, "wing": 2, "heavy_cannon": 1}
     converged_healthy = dict(
         ships=[dict(name="c%d" % i, fitness=10.6,
                     diagnosis=dict(legal=True, demand_unmet={},
-                                   families={"engine": 1, "wing": 2}))
+                                   families=dict(rich_sig)))
                for i in range(8)],
-        diversity=0.333)
-    cv = d.verification_plan(converged_healthy, prev_fit=10.6, prev_div=0.333)
+        diversity=0.125)          # 8 identical signatures → 1/8 (well below floor)
+    # the case is genuinely "all healthy" (legal AND fueled AND multi-family):
+    assert all(s["diagnosis"]["legal"]
+               and sum(s["diagnosis"]["demand_unmet"].values()) == 0
+               and len(s["diagnosis"]["families"]) >= 3
+               for s in converged_healthy["ships"]), "test setup not rich+healthy"
+    cv = d.verification_plan(converged_healthy, prev_fit=10.6, prev_div=0.125)
     assert cv["verification_budget"] == 0, \
         "healthy converged fleet drew verification budget — the rider's sin"
 
@@ -370,6 +380,121 @@ def test_evolve_smoke():
           "verification rider exercised)")
 
 
+# ----------------------------------------------------------------- gate 7
+def test_repair_policy_promoted():
+    """The 3b promotion (P2): on_repair_choice is genuinely LIVE behind the
+    `repair_policy_active` flag, faction-divergent brace taste is structurally
+    reachable, and the canonical anchor is byte-identical even with the flag ON.
+
+    Construction: a STRICT (relief, L)-tie between two braces of DIFFERENT
+    anchor/geometry — the set the legacy accumulator treats as interchangeable.
+    Guild taste keeps the spine/legacy head (the lexicographically-clean anchor);
+    feral taste re-resolves the SAME tie toward the louder anchor. The two
+    factions therefore COMMIT DIFFERENT braces on identical input — proving the
+    surface drives selection rather than returning a frozen no-op.
+
+    rng-free, network-free, geometry-free divergence (anchor-name key)."""
+    # two genuinely interchangeable braces (same relief, same L) of distinct
+    # geometry — a real tie, not the canonical fleet's geometrically-identical one
+    def fresh_viable():
+        return [
+            dict(relief=0.6, L=1.0, anchor_part="aaa_clean",
+                 a=[0.0, 0.0, 0.0], b=[1.0, 0.0, 0.0], vol=-1),
+            dict(relief=0.6, L=1.0, anchor_part="zzz_loud",
+                 a=[0.0, 0.0, 0.0], b=[0.0, 1.0, 0.0], vol=-1),
+        ]
+    ctx_g = {"faction": GUILD["name"]}
+    ctx_f = {"faction": FERAL["name"]}
+
+    # 1) FLAG OFF ⇒ the historical no-op exactly: None for BOTH factions, no log.
+    d_off = Director(repair_policy_active=False)
+    assert d_off.on_repair_choice(fresh_viable(), ctx_g) is None
+    assert d_off.on_repair_choice(fresh_viable(), ctx_f) is None
+    assert d_off._select_log == [], "flag-off path must never log"
+
+    # 2) FLAG ON + GUILD ⇒ spine head == legacy argmin ⇒ suppressed (None), so
+    #    the legacy `aaa_clean` brace rides through; no spurious event.
+    d_g = Director(repair_policy_active=True)
+    pick_g = d_g.on_repair_choice(fresh_viable(), ctx_g)
+    assert pick_g is None, ("guild taste == legacy spine, must suppress", pick_g)
+    assert d_g._select_log == [], "guild no-op must not log"
+    guild_commit = fresh_viable()[0]["anchor_part"]   # legacy head rides
+
+    # 3) FLAG ON + FERAL ⇒ the louder anchor wins the SAME strict tie ⇒ a real
+    #    permutation whose head differs from legacy ⇒ kitmash commits viable[head]
+    #    and a ledger-shaped repair_choice event is appended.
+    vf = fresh_viable()
+    d_f = Director(repair_policy_active=True)
+    pick_f = d_f.on_repair_choice(vf, ctx_f)
+    assert pick_f is not None, "feral taste must reorder a genuine tie"
+    assert vf[pick_f[0]]["anchor_part"] == "zzz_loud", \
+        ("feral must commit the louder anchor", pick_f)
+    assert len(d_f._select_log) == 1, "feral divergence must log exactly once"
+    ev = d_f._select_log[0]
+    assert ev["ev"] == "repair_choice" and ev["cause"] == "rank_braces" \
+        and ev["result"] == "reordered", ev
+    assert ev["metrics"]["faction"] == FERAL["name"]
+    feral_commit = vf[pick_f[0]]["anchor_part"]
+
+    # 4) THE DIVERGENCE: guild and feral commit DIFFERENT braces on the SAME input
+    assert guild_commit != feral_commit, \
+        ("faction taste failed to diverge", guild_commit, feral_commit)
+
+    # 5) ORDER-INDEPENDENCE (the policy is live, not a frozen passthrough): feed
+    #    the SAME braces in REVERSED order; the feral committed brace is the same
+    #    physical strut (zzz_loud) regardless of input order — the live policy
+    #    re-derives the choice deterministically rather than echoing position.
+    vr = list(reversed(fresh_viable()))
+    d_r = Director(repair_policy_active=True)
+    pick_r = d_r.on_repair_choice(vr, ctx_f)
+    chosen_r = vr[pick_r[0]]["anchor_part"] if pick_r is not None \
+        else vr[0]["anchor_part"]
+    assert chosen_r == "zzz_loud", \
+        ("policy must be order-independent (live), not positional", chosen_r)
+
+    # 6) ANCHOR SAFETY: the flag-ON canonical GS-α build is byte-identical to the
+    #    director=None legacy path (md5 anchor holds, no repair_choice events).
+    import subprocess
+    import os
+    import sys
+    subprocess.run([sys.executable, "kitmash.py", "/tmp/_promote_anchor.json"],
+                   check=True, cwd=os.path.dirname(os.path.abspath(__file__)),
+                   stdout=subprocess.DEVNULL)
+    md5 = hashlib.md5(
+        open("/tmp/_promote_anchor.json", "rb").read()).hexdigest()
+    assert md5 == ANCHOR_MD5, f"md5 {md5} != anchor {ANCHOR_MD5}"
+
+    # full canonical fleet with an ACTIVE repair-policy director ⇒ every strut
+    # decision is byte-identical to the legacy build, zero repair_choice events.
+    def _active_director():
+        d = Director(repair_policy_active=True)
+        d._brief = {"tie_policy": "identity"}     # isolate the repair surface
+        return d
+    legacy_dict = _canonical_export_dict(None)
+    active_dict = _canonical_export_dict(_active_director())
+    UID_FIELDS = ("part_id", "port", "host_port", "part_port", "evicted",
+                  "target", "victim", "instigator")
+
+    def scrub(d):
+        out = json.loads(json.dumps(d))
+        for sh in out["ships"]:
+            for ev2 in sh["trace"]:
+                for k in UID_FIELDS:
+                    ev2.pop(k, None)
+                ev2.pop("conflict_set", None)
+                ev2.pop("among", None)
+        return out
+    assert scrub(legacy_dict) == scrub(active_dict), \
+        "active repair-policy director diverged from legacy on canonical fleet"
+    rc = [ev2 for sh in active_dict["ships"] for ev2 in sh["trace"]
+          if ev2.get("ev") == "repair_choice"]
+    assert rc == [], ("active director logged repair_choice on canonical", rc)
+
+    print("PASS  repair policy promoted (flag gates the surface; guild→%s / "
+          "feral→%s diverge; order-independent; canonical byte-identical, "
+          "md5 anchor holds)" % (guild_commit, feral_commit))
+
+
 if __name__ == "__main__":
     test_noop_regression()
     test_tie_break_fires()
@@ -377,4 +502,5 @@ if __name__ == "__main__":
     test_breeding()
     test_goodhart_detector()
     test_evolve_smoke()
+    test_repair_policy_promoted()
     print("ALL DIRECTOR GATES PASS")

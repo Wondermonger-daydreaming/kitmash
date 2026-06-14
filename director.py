@@ -50,16 +50,21 @@ from kitmash import GUILD, FERAL, build, gen_radiator, gen_reactor, gen_turret
 # ---------------------------------------------------------------- brief shape
 def make_brief(faction, seed, wants, heavy=1.0, span=3.2, extra_gens=(),
                budgets=None, tie_policy="diversity", parent=None,
-               mutation=None):
+               mutation=None, bureau=None):
     """A Brief is a plain dict (AGENT-LOOP-SPEC §4a). It extends build()'s
-    inputs with director-level knobs that default to today's values."""
+    inputs with director-level knobs that default to today's values.
+
+    `bureau` is the name of the active aesthetic objective (§2c) the brief was
+    authored under. It selects which row of BUREAU_OBJECTIVES external_fitness
+    scores against; None ⇒ the canonical objective (behaviour unchanged)."""
     return dict(
         faction=faction, seed=int(seed), wants=dict(wants),
         heavy=float(heavy), span=float(span),
         extra_gens=tuple(extra_gens),
         budgets=dict(budgets) if budgets else dict(mass=11000,
                                                    silhouette=3.2, parts=14),
-        tie_policy=tie_policy, parent=parent, mutation=mutation)
+        tie_policy=tie_policy, parent=parent, mutation=mutation,
+        bureau=bureau)
 
 
 # fitness/diagnosis tuning constants — descriptive heuristics, all documented
@@ -67,14 +72,82 @@ PART_BAND = (7, 12)            # "honest" part count band
 STRUT_PER_PART_OK = 0.6        # above this the frame is over-braced
 TIE_EPS_DEFAULT = 0.05
 
+# service families: the plumbing/power complexity a Service-Network bureau prizes
+SERVICE_FAMILIES = ("reactor", "turret", "radiator")
+
+
+# ============================================================ BUREAUS (§2c)
+# A bureau is a named brief-authoring preset: a dict of OBJECTIVE WEIGHTS over
+# the fitness *terms* (computed below in external_fitness), plus a `seed`
+# regime (faction / extra genes / wants slant / scarcity) that gives the
+# lineage a genuinely different starting taste. A bureau is NOT a new agent: it
+# makes NO LLM call, adds NO legality, is rng-free. It only reweights the SAME
+# external_fitness terms, all of which read ONLY the post-hoc diagnosis — never
+# score(). The terms are deliberately authored to pull in different directions:
+#
+#   fueled       1 if no demand_unmet else 0           (always rewarded > 0)
+#   legal        1 if no hard overlaps else 0          (always rewarded > 0)
+#   diversity    n_fam * (1 - monoculture)             family spread
+#   honest       1 - strut_per_part/OK  (clamped ≥0)   LOW bracing
+#   in_band      part count inside PART_BAND
+#   bracing      strut_per_part/OK  (the INVERSE of honest) — visible mediation
+#   repair       (repairs + adapters) scaled           mediation scars
+#   service      count of SERVICE_FAMILIES present      plumbing/power depth
+#   plumbing     hoses scaled                           routing intricacy
+#   antirepeat   1 - (sibling story-collisions / n)     Austerity's anti-attractor
+#
+# `fueled` and `legal` keep a positive weight in EVERY bureau (a bureau may
+# slant taste, but a dead ship is never preferred). The default row reproduces
+# today's hard-coded coefficients exactly, so external_fitness(diag) with no
+# bureau is byte-for-behaviour identical to before.
+BUREAU_OBJECTIVES = {
+    # canonical objective — today's coefficients, unchanged default
+    None: dict(fueled=2.0, diversity=1.2, honest=1.0, in_band=1.0, legal=1.5),
+
+    # Guild-Structural — clean, redundant, debt-free structure. Heavy weight on
+    # honesty (low strut/part) and band compliance; rewards diversity modestly.
+    "Guild-Structural": dict(
+        fueled=2.0, legal=1.5, honest=2.4, in_band=1.6, diversity=0.8),
+
+    # Feral-Repair — INVERTS the strut penalty. The repair scars ARE the
+    # aesthetic: visible bracing and mediation are rewarded, debt tolerated.
+    # No `honest` term at all (it would punish the look this bureau wants).
+    "Feral-Repair": dict(
+        fueled=1.5, legal=1.5, bracing=1.8, repair=1.4, diversity=0.6),
+
+    # Service-Network — reactor/turret/radiator service complexity plus deep
+    # fuel/power routing (hoses). A ship is good when its plumbing is intricate
+    # AND it stays legal+fueled.
+    "Service-Network": dict(
+        fueled=2.0, legal=1.5, service=2.2, plumbing=1.2, diversity=0.6),
+
+    # Austerity — optimises AGAINST repetition itself. Penalises a ship whose
+    # event-story (family signature + reject narrative) merely retells what its
+    # siblings already told. The explicit anti-attractor.
+    "Austerity": dict(
+        fueled=2.0, legal=1.5, antirepeat=3.0, diversity=1.0, in_band=0.6),
+}
+DEFAULT_BUREAUS = ("Guild-Structural", "Feral-Repair",
+                   "Service-Network", "Austerity")
+
 
 # ================================================================== Director
 class Director:
     """Heuristic, rng-free, network-free creative director."""
 
     def __init__(s, tie_eps=TIE_EPS_DEFAULT, verification_budget=0,
-                 collapse_floor=0.5):
+                 collapse_floor=0.5, diversity_weight=0.35,
+                 repair_policy_active=False):
         s.tie_eps = tie_eps
+        # 3b PROMOTION FLAG (default OFF — anchor safe). When False,
+        # on_repair_choice returns None EXACTLY as the deferred no-op did, so the
+        # canonical (no-director) and any active-director build are byte-identical.
+        # When True, the real rank_braces policy drives brace selection through
+        # the kitmash repair-commit path. Even when True it stays byte-identical
+        # on the canonical fleet: rank_braces uses the SAME (-relief, L) key the
+        # legacy accumulator does, so its head == legacy argmin and we suppress
+        # the reorder/log whenever committing our head would change nothing.
+        s.repair_policy_active = repair_policy_active
         # PROPORTIONAL VERIFICATION knob: the *baseline* heavy-review budget is
         # ZERO. It is raised ONLY by verification_plan() in response to a
         # detected anomaly — never as a function of available compute.
@@ -82,7 +155,13 @@ class Director:
         # absolute diversity floor: the LEVEL below which sustained-low novelty
         # plus rising fitness is the Goodhart endgame (not just a falling slope).
         s.collapse_floor = collapse_floor
+        # DIVERSITY-AWARE SELECTION knob (§2a): how strongly the facility-
+        # location survivor pass weights NEW family-signature variety against a
+        # ship's own fitness. 0.35 ⇒ fitness still leads; variety breaks
+        # near-ties and rescues distinct-but-slightly-weaker ships.
+        s.diversity_weight = diversity_weight
         s._brief = None        # the active brief (sets tie_policy for on_tie)
+        s._select_log = []     # ledger-shaped survivor-selection events
 
     # ----------------------------------------------------------- 4a authoring
     def author_brief(s, history):
@@ -105,6 +184,53 @@ class Director:
             make_brief(FERAL, 23, wants_f, heavy=1.4, span=3.4,
                        tie_policy="faction"),
         ]
+
+    # ----------------------------------------------------- 2c bureau seeding
+    def _bureau_seed(s, bureau):
+        """Author the gen-0 seed brief for one bureau. The seed regime —
+        faction, extra service genes, wants slant, tie policy — is chosen so
+        the lineage STARTS in a different basin, not merely scores the same
+        ships differently. (The objective fork lives in BUREAU_OBJECTIVES; the
+        *basin* fork lives here. Together they make bureaus actually diverge.)
+        rng-free; no LLM call; adds no legality."""
+        if bureau == "Guild-Structural":
+            # clean redundant guild frame: modest cannon, no service genes.
+            wants = {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+                     "heavy_cannon": 1.0, "antenna": 0.9, "sensor_pod": 0.8}
+            return make_brief(GUILD, 7, wants, heavy=0.9, span=3.0,
+                              tie_policy="diversity", bureau=bureau,
+                              mutation="bureau:Guild-Structural seed")
+        if bureau == "Feral-Repair":
+            # over-armed feral lever that braces hard — repair scars by design.
+            wants = {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.2,
+                     "heavy_cannon": 2.8, "sensor_pod": 0.6, "antenna": 0.3}
+            return make_brief(FERAL, 23, wants, heavy=1.7, span=3.6,
+                              tie_policy="faction", bureau=bureau,
+                              mutation="bureau:Feral-Repair seed")
+        if bureau == "Service-Network":
+            # plumbing-rich: reactor/turret service genes + a service want slant.
+            # (radiator is deliberately NOT seeded here — the routed plumbing for
+            # reactor+turret fuels cleanly, whereas piling on a radiator demand
+            # leaves it `no_route` and the eligibility filter would correctly
+            # eject the ship. The bureau prizes intricate-AND-legal plumbing.)
+            wants = {"engine": 3.0, "fuel_tank": 2.5, "wing": 1.6,
+                     "heavy_cannon": 0.9, "turret": 2.6, "reactor": 2.3,
+                     "sensor_pod": 0.4, "antenna": 0.3}
+            return make_brief(FERAL, 101, wants, heavy=1.0, span=3.0,
+                              extra_gens=(gen_reactor, gen_turret),
+                              tie_policy="faction", bureau=bureau,
+                              mutation="bureau:Service-Network seed")
+        if bureau == "Austerity":
+            # broad balanced taste so the anti-repeat term has room to spread.
+            wants = {"engine": 3.0, "fuel_tank": 2.5, "wing": 2.0,
+                     "heavy_cannon": 1.4, "sensor_pod": 1.0, "antenna": 1.0,
+                     "radiator": 1.2}
+            return make_brief(GUILD, 53, wants, heavy=1.0, span=3.2,
+                              extra_gens=(gen_radiator,),
+                              tie_policy="diversity", bureau=bureau,
+                              mutation="bureau:Austerity seed")
+        # unknown bureau ⇒ fall back to the canonical guild seed
+        return s._seed_briefs()[0]
 
     def _adjust(s, brief, diag):
         """4d: map a diagnosis to next-brief knob adjustments. Descriptive
@@ -153,7 +279,8 @@ class Director:
             brief["faction"], brief["seed"] + 1, wants, heavy=heavy, span=span,
             extra_gens=brief["extra_gens"], budgets=budgets,
             tie_policy=tie_policy, parent=brief.get("parent"),
-            mutation="; ".join(notes) or "steady")
+            mutation="; ".join(notes) or "steady",
+            bureau=brief.get("bureau"))
 
     # ----------------------------------------------------------- 4b review
     def review(s, trace, stats):
@@ -262,22 +389,123 @@ class Director:
         ⇒ most relief from a steeper sin-angle), tie-break lowest added mass
         (proxy: shortest brace L).
 
-        3b IS DEFERRED (AGENT-LOOP-SPEC §3b, and the in-code TODO in
-        kitmash.propose_strut): the legacy `best`-accumulator stays
-        AUTHORITATIVE. This policy computes the same (-relief, L)-min ordering
-        the accumulator already uses, so its top pick can never differ from
-        the legacy `best`. We therefore return None unless our chosen head
-        differs from the head kitmash would otherwise commit — which, for the
-        canonical fleet, it never does. That guarantees byte-identity (no
-        spurious repair_choice log) while leaving the policy real and ready to
-        drive selection once 3b is promoted."""
-        order = s.rank_braces(viable)        # the real policy, ready for 3b
-        # 3b deferred: returning the permutation would only relog a no-op
-        # (our head == legacy argmin == same committed brace). Return None to
-        # keep the canonical fleet byte-identical. Promote `return order` when
-        # 3b is wired (kitmash's accumulator replaced by the sorted list).
-        del order
-        return None
+        3b PROMOTION (AGENT-LOOP-SPEC §3b): the real policy now drives brace
+        selection — but ONLY behind `s.repair_policy_active`, and ONLY when
+        doing so changes the committed brace's GEOMETRY.
+
+          * `repair_policy_active is False` (default / canonical) ⇒ return None
+            EXACTLY as the deferred no-op did. The legacy `best`-accumulator in
+            kitmash.propose_strut stays authoritative; no log, byte-identical.
+
+          * `repair_policy_active is True` ⇒ rank with rank_braces (the spine:
+            -relief, then +L) and apply a FACTION secondary tie-break ONLY among
+            braces that tie on the FULL (relief, L) spine key — i.e. braces the
+            legacy accumulator already considers interchangeable. Guild taste
+            keeps the spine order (the clean, lexicographically-first anchor ==
+            the legacy accumulator). Feral taste — the "Tape Holds" aesthetic
+            where visible bracing IS the look — prefers the louder anchor among
+            that strict tie. The secondary key NEVER reaches across to a
+            different-(relief, L) brace, so the policy can never silently swap a
+            short clean brace for a longer one; it only re-resolves a genuine
+            tie. This is where guild and feral brace taste DIVERGE, and the
+            divergence is now structurally reachable.
+
+        BYTE-IDENTITY GUARD: we compare the brace our order would COMMIT (its
+        geometry: anchor / endpoint / relief / L) against the brace the legacy
+        accumulator would commit. If they are the SAME PHYSICAL BRACE we return
+        None — kitmash's `if pick is not None` short-circuits, no repair_choice
+        event is logged, and the fleet is byte-identical. The canonical fleet's
+        only (-relief, L)-ties are between GEOMETRICALLY IDENTICAL candidates
+        (verified: same core_hull anchor, same endpoint), so even feral taste
+        commits the same physical strut there — the flag-ON canonical build is
+        byte-identical. We emit a permutation + ledger event ONLY when the
+        committed brace genuinely differs (never on canonical input)."""
+        if not s.repair_policy_active:
+            # anchor-safe deferred behaviour: identical to the historical no-op.
+            return None
+
+        order = s._ranked_by_taste(viable, (ctx or {}).get("faction"))
+        legacy = s._legacy_argmin(viable)        # what kitmash would commit
+        if s._same_brace(viable[order[0]], viable[legacy]):
+            # our head commits the SAME physical brace as legacy ⇒ no-op.
+            # Suppress so kitmash short-circuits: no event, byte-identical.
+            return None
+
+        # GENUINE divergence: the live faction taste commits a different brace
+        # than the legacy accumulator. Hand kitmash the permutation, trace it.
+        s._select_log.append(dict(
+            ev="repair_choice", cause="rank_braces",
+            metrics=dict(among=len(viable),
+                         head_anchor=viable[order[0]].get("anchor_part"),
+                         head_relief=round(viable[order[0]]["relief"], 3),
+                         head_L=round(viable[order[0]]["L"], 3),
+                         legacy_anchor=viable[legacy].get("anchor_part"),
+                         legacy_L=round(viable[legacy]["L"], 3),
+                         faction=(ctx or {}).get("faction")),
+            result="reordered"))
+        return order
+
+    def _ranked_by_taste(s, viable, faction):
+        """rank_braces (the -relief,+L spine) plus a FACTION secondary tie-break
+        applied ONLY among braces that tie on the FULL (relief, L) spine key —
+        the set the legacy accumulator treats as interchangeable. Guild keeps the
+        spine order (== legacy). Feral re-resolves a strict tie toward the louder
+        anchor (the visible-bracing aesthetic). The secondary key cannot reach a
+        different-(relief, L) brace, so this never swaps a clean short brace for a
+        longer one; it only breaks a genuine tie differently by faction."""
+        base = s.rank_braces(viable)             # spine order (reuse the policy)
+        if faction != FERAL["name"]:
+            return base                          # guild == spine == legacy
+        # FERAL: within each strict (relief, L) tie-group of `base`, prefer the
+        # louder anchor (lexicographically larger anchor_part), stable on the
+        # spine position otherwise. Only same-(relief, L) members can reorder.
+        def feral_key(rank_pos):
+            i = base[rank_pos]
+            return (-viable[i]["relief"], viable[i]["L"],
+                    s._anchor_loudness(viable[i]), rank_pos)
+        return [base[p] for p in sorted(range(len(base)), key=feral_key)]
+
+    @staticmethod
+    def _anchor_loudness(brace):
+        """Feral taste key: a louder (more conspicuous) anchor sorts FIRST. We
+        invert the anchor label so the lexicographically LARGER anchor name wins
+        a strict tie — a deterministic, geometry-free faction signal."""
+        lbl = brace.get("anchor_part") or ""
+        # negate via reverse-ordinal so larger label => smaller key => first.
+        return tuple(-ord(c) for c in lbl)
+
+    @staticmethod
+    def _same_brace(p, q):
+        """True iff two viable-brace dicts commit the SAME physical strut: same
+        anchor part, same endpoints, same relief/L (within float tol). The
+        byte-identity reference — two candidates can tie on (-relief, L) yet be
+        the same physical brace (canonical fleet), in which case a faction
+        reorder commits identical geometry and must NOT be logged."""
+        if p is q:
+            return True
+        if p.get("anchor_part") != q.get("anchor_part"):
+            return False
+        if abs(p["relief"] - q["relief"]) > 1e-9 or abs(p["L"] - q["L"]) > 1e-9:
+            return False
+        pa, pb = p.get("a"), p.get("b")
+        qa, qb = q.get("a"), q.get("b")
+        import numpy as np
+        return bool(np.allclose(pa, qa, atol=1e-9)
+                    and np.allclose(pb, qb, atol=1e-9))
+
+    @staticmethod
+    def _legacy_argmin(viable):
+        """The index kitmash.propose_strut's `best`-accumulator would commit:
+        max relief, tie-break shortest L, FIRST-encountered wins a true tie
+        (mirrors the accumulator's strict `>`/`<` updates exactly). Pure,
+        read-only — the reference point that makes byte-identity provable."""
+        best = 0
+        for i in range(1, len(viable)):
+            if viable[i]["relief"] > viable[best]["relief"] + 1e-9 or \
+               (abs(viable[i]["relief"] - viable[best]["relief"]) < 1e-9
+                    and viable[i]["L"] < viable[best]["L"]):
+                best = i
+        return best
 
     @staticmethod
     def rank_braces(viable):
@@ -313,50 +541,67 @@ class Director:
         # union the gene pools so spliced wants can actually be supplied
         extra = tuple(dict.fromkeys(
             list(brief_a["extra_gens"]) + list(brief_b["extra_gens"])))
+        cross = (brief_a.get("bureau") != brief_b.get("bureau")
+                 and brief_a.get("bureau") is not None
+                 and brief_b.get("bureau") is not None)
+        note = ("splice: wants∪, knobs from fitter parent"
+                + (" | cross-bureau %s×%s, inherits %s"
+                   % (brief_a.get("bureau"), brief_b.get("bureau"),
+                      fitter.get("bureau")) if cross else ""))
         return make_brief(
             fitter["faction"], blend["seed"], wants,
             heavy=blend["heavy"], span=blend["span"],
             extra_gens=extra, budgets=fitter["budgets"],
             tie_policy=fitter["tie_policy"],
             parent="%s×%s" % (_tag(brief_a), _tag(brief_b)),
-            mutation="splice: wants∪, knobs from fitter parent")
+            mutation=note, bureau=fitter.get("bureau"))
 
     # ----------------------------------------- 4f the evolve loop driver
-    def evolve(s, generations=2, population=3, seed=0):
+    def evolve(s, generations=2, population=3, seed=0, bureaus=None):
         """The loop. Returns a well-formed lineage record. Zero network calls.
 
         Per gen: build each brief WITH the director attached (so on_tie fires)
-        → review each trace → external fitness + novelty → select survivors →
-        breed → next briefs → periodic scarcity shock.
-        """
-        lineage = dict(generations=[], warnings=[])
+        → review each trace → external fitness (under each ship's bureau) +
+        novelty → diversity-aware select survivors → breed (within bureau, plus
+        an occasional cross-bureau splice) → next briefs → periodic scarcity
+        shock.
+
+        BUREAUS (§2c): `bureaus` defaults to the four standard bureaus. Each
+        gen-0 ship is seeded under a bureau (round-robin across `population`),
+        and the bureau identity rides on every brief/ship thereafter. Survivors
+        breed within their own bureau by default; one deliberate cross-bureau
+        splice per generation supplies hybridization. The default call
+        `evolve(generations=2, population=3)` still returns exactly `population`
+        ships/gen with the full per-ship/per-gen keys the smoke test asserts."""
+        bureaus = list(bureaus) if bureaus is not None else list(DEFAULT_BUREAUS)
+        s._select_log = []        # fresh whole-run selection ledger
+        lineage = dict(generations=[], warnings=[], bureaus=bureaus)
         history = []          # (brief, diag, fitness) of the fittest per gen
         prev_best_fitness = None
         prev_diversity = None
-        ships = []            # current generation's briefs
 
         for g in range(generations):
-            # author this generation's briefs
+            # author this generation's briefs (gen-0: one seed per bureau)
             if g == 0:
-                briefs = s.author_brief([])
+                seeds = [s._bureau_seed(b) for b in bureaus]
             else:
-                briefs = list(next_briefs)
+                seeds = list(next_briefs)
             # scarcity shock on alternating later generations (§4h.3)
             if g > 0 and g % 2 == 0:
-                briefs = [s.scarcity_shock(b, g) for b in briefs]
-            # pad/trim to population
-            briefs = (briefs * ((population // len(briefs)) + 1))[:population]
-            briefs = [dict(b) for b in briefs]      # defensive copies
+                seeds = [s.scarcity_shock(b, g) for b in seeds]
+            # round-robin pad/trim to exactly `population` ships
+            briefs = [dict(seeds[i % len(seeds)]) for i in range(population)]
 
             gen_record = dict(gen=g, ships=[])
+            sibling_sigs = []          # for Austerity's anti-repeat term
             for k, brief in enumerate(briefs):
-                rec = s._build_and_review(brief, g, k)
+                rec = s._build_and_review(brief, g, k, sibling_sigs)
                 gen_record["ships"].append(rec)
-                ships.append(rec)
+                sibling_sigs.append(_story_sig(rec["diagnosis"]))
 
             # generation-level diversity (novelty pressure, §4h.2)
             diversity = s.lineage_novelty(gen_record["ships"])
-            best = max(gen_record["ships"], key=lambda r: r["fitness"])
+            best = _fittest_eligible(gen_record["ships"])
             gen_record["best"] = best["name"]
             gen_record["diversity"] = round(diversity, 3)
             best_fit = best["fitness"]
@@ -378,21 +623,23 @@ class Director:
             lineage["generations"].append(gen_record)
             history.append((best["brief"], best["diagnosis"], best_fit))
 
-            # SELECT survivors (top half by fitness, ≥2) and BREED next gen
-            survivors = sorted(gen_record["ships"],
-                               key=lambda r: -r["fitness"])[:max(2,
-                                                                 population // 2)]
-            next_briefs = s._breed(survivors)
+            # SELECT survivors — diversity-aware facility-location (§2a),
+            # eligibility (legal AND fueled) a HARD filter before novelty.
+            survivors = s.select_survivors(
+                gen_record["ships"], max(2, population // 2), gen_record)
+            next_briefs = s._breed(survivors, bureaus)
             prev_best_fitness, prev_diversity = best_fit, diversity
 
-        lineage["best_overall"] = max(
-            (r for gr in lineage["generations"] for r in gr["ships"]),
-            key=lambda r: r["fitness"])["name"]
+        lineage["best_overall"] = _fittest_eligible(
+            [r for gr in lineage["generations"] for r in gr["ships"]])["name"]
         return lineage
 
-    def _build_and_review(s, brief, g, k):
+    def _build_and_review(s, brief, g, k, sibling_sigs=None):
         """Build one ship from a brief (director attached), review its trace,
-        compute external fitness. Returns a per-ship lineage record."""
+        compute external fitness UNDER THE BRIEF'S BUREAU. Returns a per-ship
+        lineage record. `sibling_sigs` (story-signatures of already-judged
+        ships this gen) feeds Austerity's anti-repeat term — derived purely
+        from diagnoses, never from score()."""
         s._brief = brief                 # arms on_tie's policy for this build
         a = build(brief["faction"], brief["seed"], brief["wants"],
                   heavy=brief["heavy"], span=brief["span"],
@@ -404,49 +651,189 @@ class Director:
             mass=int(sum(p.mass for p in a.placed)),
             struts=len(a.struts), hoses=len(a.hoses))
         diag = s.review(a.trace, stats)
-        fit = s.external_fitness(diag)
-        name = "G%d-%02d-%s" % (g, k, brief["faction"]["name"].split()[0])
         # cook check: a ship that "ran" must be legal (no hard overlaps).
         legal = no_hard_overlaps(a)
         diag["legal"] = legal
+        bureau = brief.get("bureau")
+        ctx = ({"sibling_sigs": sibling_sigs} if sibling_sigs is not None
+               and bureau == "Austerity" else None)
+        fit = s.external_fitness(diag, bureau=bureau, lineage_ctx=ctx)
+        name = "G%d-%02d-%s" % (g, k, brief["faction"]["name"].split()[0])
         return dict(name=name, brief=brief, diagnosis=diag, fitness=fit,
                     stats=stats, parents=brief.get("parent"), legal=legal,
-                    assembler=a)
+                    bureau=bureau, assembler=a)
 
-    def _breed(s, survivors):
-        """Pair survivors and splice; carry the fittest brief through too."""
+    def _breed(s, survivors, bureaus=None):
+        """Breed the next generation. By default survivors breed WITHIN their
+        own bureau (the objective fork must persist for the lineages to keep
+        diverging). One deliberate CROSS-bureau splice per generation supplies
+        hybridization (reuses splice_trace). Each bureau's fittest survivor also
+        authors one diagnosis-adjusted brief."""
+        # group survivors by bureau, fittest-first within each group
+        groups = {}
+        for r in survivors:
+            groups.setdefault(r.get("bureau"), []).append(r)
+        for members in groups.values():
+            members.sort(key=lambda r: -r["fitness"])
+
+        # breed each bureau into its own child-list (within-bureau splices +
+        # one diagnosis-adjusted brief from the bureau's fittest survivor)
+        per_bureau = {}
+        for bureau, members in groups.items():
+            kids = []
+            if len(members) == 1:
+                kids.append(s._adjust(members[0]["brief"],
+                                      members[0]["diagnosis"]))
+            else:
+                for i in range(len(members)):
+                    a = members[i]
+                    b = members[(i + 1) % len(members)]
+                    kids.append(s.splice_trace(a["brief"], b["brief"],
+                                               a["fitness"], b["fitness"]))
+                kids.append(s._adjust(members[0]["brief"],
+                                      members[0]["diagnosis"]))
+            per_bureau[bureau] = kids
+
+        # INTERLEAVE the per-bureau children round-robin so every surviving
+        # bureau gets fair representation when evolve() pads to `population`.
+        # (Clustering them would let the front bureau crowd the others out and
+        # re-collapse the lineage — the exact attractor we are escaping.)
         out = []
-        for i in range(len(survivors)):
-            a = survivors[i]
-            b = survivors[(i + 1) % len(survivors)]
-            child = s.splice_trace(a["brief"], b["brief"],
-                                   a["fitness"], b["fitness"])
-            out.append(child)
-        # also let each survivor's diagnosis author one adjusted brief
-        out.append(s._adjust(survivors[0]["brief"], survivors[0]["diagnosis"]))
-        return out
+        idx = 0
+        order = list(per_bureau)
+        while any(idx < len(per_bureau[b]) for b in order):
+            for b in order:
+                if idx < len(per_bureau[b]):
+                    out.append(per_bureau[b][idx])
+            idx += 1
+
+        # ONE deliberate cross-bureau hybridization per generation (§2c): splice
+        # the two fittest survivors of DIFFERENT bureaus. The child inherits the
+        # fitter parent's bureau (so it rejoins a real objective lineage).
+        ranked = sorted(survivors, key=lambda r: -r["fitness"])
+        if len(ranked) >= 2:
+            top = ranked[0]
+            other = next((r for r in ranked[1:]
+                          if r.get("bureau") != top.get("bureau")), None)
+            if other is not None:
+                out.append(s.splice_trace(top["brief"], other["brief"],
+                                          top["fitness"], other["fitness"]))
+        return out or [s._adjust(survivors[0]["brief"],
+                                 survivors[0]["diagnosis"])]
 
     # ------------------------------------------------- 4g external fitness
-    def external_fitness(s, diag):
-        """The Goodhart firewall (§4g): computed from the DIAGNOSIS, never
-        from score(). Rewards SHIP VIRTUE, not sampler taste:
-            + fueled            (no demand_unmet)
-            + family diversity  (more distinct families, less monoculture)
-            + silhouette spent  (richer reads — proxied by part count in band)
-            + LOW strut/part    (honest frame, not over-braced)
-            + part-count in band
-        The sampler optimizes score(); this ignores score() entirely."""
+    @staticmethod
+    def fitness_terms(diag, lineage_ctx=None):
+        """Compute every named fitness TERM from the DIAGNOSIS alone (plus, for
+        the anti-repeat term, sibling family/reject signatures passed in
+        `lineage_ctx`). EVERY term is a pure function of `diag` — none reads
+        score(). This is the single place the firewall is enforced: there is no
+        argument here through which a candidate's score() could enter.
+
+        `lineage_ctx`, when present, is a dict {"sibling_sigs": [...]} of the
+        (family-signature, reject-signature) tuples of the ships ALREADY judged
+        this generation — also derived purely from their diagnoses, never their
+        score()."""
         fueled = 1.0 if sum(diag["demand_unmet"].values()) == 0 else 0.0
         n_fam = len(diag["families"])
         diversity = n_fam * (1.0 - diag["monoculture"])
-        honest = max(0.0, 1.0 - diag["strut_per_part"] / STRUT_PER_PART_OK)
+        spp = diag["strut_per_part"]
+        honest = max(0.0, 1.0 - spp / STRUT_PER_PART_OK)
+        bracing = min(2.0, spp / STRUT_PER_PART_OK)   # INVERSE of honest
+        repair = min(2.0, (diag.get("repairs", 0)
+                           + diag.get("adapters", 0)) / 3.0)
+        service = sum(1 for f in SERVICE_FAMILIES if diag["families"].get(f, 0))
+        plumbing = min(2.0, diag.get("hoses", 0) / 3.0)
         lo, hi = PART_BAND
         in_band = 1.0 if lo <= diag["parts"] <= hi else \
             max(0.0, 1.0 - min(abs(diag["parts"] - lo),
                                abs(diag["parts"] - hi)) / 5.0)
         legal = 1.0 if diag.get("legal", True) else 0.0
-        return round(2.0 * fueled + 1.2 * diversity + 1.0 * honest +
-                     1.0 * in_band + 1.5 * legal, 4)
+        # antirepeat: 1.0 if this ship's (families, rejects) story is NOVEL among
+        # its already-judged siblings; →0 as it retells what siblings told.
+        antirepeat = 1.0
+        if lineage_ctx:
+            sibs = lineage_ctx.get("sibling_sigs", [])
+            if sibs:
+                me = _story_sig(diag)
+                collisions = sum(1 for sg in sibs if sg == me)
+                antirepeat = max(0.0, 1.0 - collisions / len(sibs))
+        return dict(fueled=fueled, diversity=diversity, honest=honest,
+                    bracing=bracing, repair=repair, service=service,
+                    plumbing=plumbing, in_band=in_band, legal=legal,
+                    antirepeat=antirepeat)
+
+    def external_fitness(s, diag, bureau=None, lineage_ctx=None):
+        """The Goodhart firewall (§4g): computed from the DIAGNOSIS, never from
+        score(). Rewards SHIP VIRTUE under the active BUREAU's objective.
+
+        `bureau=None` reproduces today's coefficients exactly
+        (2·fueled + 1.2·diversity + 1.0·honest + 1.0·in_band + 1.5·legal), so
+        behaviour is unchanged when no bureau is set. Other bureaus reweight the
+        SAME terms (see BUREAU_OBJECTIVES) to pull in different aesthetic
+        directions. The sampler optimizes score(); this ignores score()
+        entirely — every term flows from `diag`, the post-hoc diagnosis."""
+        weights = BUREAU_OBJECTIVES.get(bureau, BUREAU_OBJECTIVES[None])
+        terms = s.fitness_terms(diag, lineage_ctx)
+        total = sum(w * terms[name] for name, w in weights.items())
+        return round(total, 4)
+
+    # ----------------------------------------- 2a diversity-aware selection
+    def select_survivors(s, ships, k, gen_record=None):
+        """Greedy diversity-aware (facility-location) survivor selection.
+
+        Take the fittest ELIGIBLE ship, then repeatedly take the ship that best
+        combines its own fitness with the NEW family-signature variety it adds.
+
+        ELIGIBILITY IS A HARD FILTER (the Goodhart guard, §2a): a ship must be
+        legal AND fueled to be selectable AT ALL. Novelty is scored only AFTER
+        this filter, so novelty can never buy a survival slot for a dead ship —
+        a signature can read 'novel' merely because a required family is MISSING
+        (a broken ship), and that path is closed by construction here."""
+        eligible = [r for r in ships if _is_eligible(r)]
+        # fall back to the raw pool ONLY if nothing is eligible (degenerate
+        # generation) so evolve() never starves; flagged via the log.
+        pool = eligible or ships
+        if not pool:
+            return []
+        chosen = [max(pool, key=lambda r: r["fitness"])]
+        s._log_select(chosen[0], novel=True, gen_record=gen_record,
+                      cause="fittest_eligible")
+        rest = [r for r in pool if r is not chosen[0]]
+        fmax = max(r["fitness"] for r in pool) or 1.0
+        while rest and len(chosen) < k:
+            sigs = {frozenset(r["diagnosis"]["families"]) for r in chosen}
+
+            def marginal(r):
+                fit_term = r["fitness"] / fmax
+                novel = frozenset(r["diagnosis"]["families"]) not in sigs
+                novelty = 1.0 if novel else 0.0
+                return (s.diversity_weight * novelty
+                        + (1 - s.diversity_weight) * fit_term)
+            nxt = max(rest, key=marginal)
+            novel = frozenset(nxt["diagnosis"]["families"]) not in sigs
+            chosen.append(nxt)
+            rest.remove(nxt)
+            s._log_select(nxt, novel=novel, gen_record=gen_record,
+                          cause="facility_location")
+        return chosen
+
+    def _log_select(s, rec, novel, gen_record=None, cause="facility_location"):
+        """Append a ledger-shaped survival-selection event. Events land on the
+        director's `_select_log` (whole-run, inspectable) AND on the current
+        gen_record's `selection` list (per-generation, inspectable in the
+        returned lineage). ev/cause/metrics/result shape matches the trace."""
+        ev = dict(ev="select", cause=cause,
+                  metrics=dict(name=rec["name"],
+                               fitness=round(rec["fitness"], 4),
+                               novel=bool(novel),
+                               families=sorted(rec["diagnosis"]["families"]),
+                               bureau=rec.get("brief", {}).get("bureau")),
+                  result="survived")
+        s._select_log.append(ev)
+        if gen_record is not None:
+            gen_record.setdefault("selection", []).append(ev)
+        return ev
 
     # --------------------------------------------------- 4h Goodhart guards
     def lineage_novelty(s, ship_records):
@@ -466,7 +853,9 @@ class Director:
                        extra_gens=brief["extra_gens"],
                        budgets=dict(brief["budgets"]),
                        tie_policy=brief["tie_policy"],
-                       parent=brief.get("parent"), mutation=brief.get("mutation"))
+                       parent=brief.get("parent"),
+                       mutation=brief.get("mutation"),
+                       bureau=brief.get("bureau"))
         # cut mass and parts budget on shock generations
         b["budgets"]["mass"] = int(b["budgets"]["mass"] * 0.9)
         b["budgets"]["parts"] = max(8, b["budgets"]["parts"] - 1)
@@ -602,8 +991,36 @@ def _family_of(label):
     return s
 
 
+def _is_eligible(rec):
+    """A ship record is eligible (selectable as survivor OR as 'best') iff it is
+    legal AND fully fueled. The single source of truth for eligibility, shared by
+    select_survivors and _fittest_eligible so 'best' can never name a ship that
+    could not survive (Cassandra v0.7 pass: closes the best/survivor asymmetry)."""
+    d = rec["diagnosis"]
+    return d.get("legal", True) and sum(d["demand_unmet"].values()) == 0
+
+
+def _fittest_eligible(records):
+    """Highest-fitness ELIGIBLE ship; fall back to the raw fittest only if a
+    generation is wholly broken (so a degenerate gen never raises). Inert on
+    healthy runs — every ship is eligible — so it cannot perturb the catalogue."""
+    pool = [r for r in records if _is_eligible(r)] or records
+    return max(pool, key=lambda r: r["fitness"])
+
+
 def _tag(brief):
     return "%s/%d" % (brief["faction"]["name"].split()[0], brief["seed"])
+
+
+def _story_sig(diag):
+    """The event-STORY signature of a ship, derived ONLY from its diagnosis:
+    its sorted family signature plus its sorted reject-cause narrative (the
+    'cannon-overload story'). Two ships with the same families AND the same
+    reject pattern told the same story — which is exactly what Austerity's
+    anti-repeat term penalises. Reads no score(), no geometry."""
+    fams = frozenset(diag.get("families", {}))
+    rejects = frozenset(diag.get("rejects", {}))
+    return (fams, rejects)
 
 
 def no_hard_overlaps(a):

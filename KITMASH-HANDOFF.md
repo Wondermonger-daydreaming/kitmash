@@ -538,6 +538,97 @@ from the relaxed path, no global negotiation rounds; no terminator caps on
 struct_M; relief model is a cartoon (sin-angle heuristic, no stiffness or
 anchor-strength terms); viewer draws all hose ctypes in one style.
 
+## v0.7 — coherence pass + diversity selection + bureaus (2026-06-13)
+
+The agent loop *defended against* monoculture (firewall, detector, novelty
+metric) but never *rewarded* variety, so `evolve()` converged to one excellent
+ship repeated — "a noble house with one jawline and several legal names,"
+diversity pinned flat at 0.333. This pass made variety a selection pressure and
+made the project honest about itself. **Canonical md5 `e6aeccfe352bba16f288785ea23e5bc3`
+UNCHANGED throughout** (all canonical builds pass `director=None`; every new
+behavior is reachable only through an explicitly attached director).
+
+- **P0 — coherence pass (no engine risk).** Added a true-status `README.md`
+  (status table, dependency tiers, honest roadmap), `ARCHITECTURE.md` ("KitMash
+  in 12 invariants"), `ARTIFACTS.md` (source-of-truth vs generated-proof vs
+  LFS), and `run_all_gates.sh` (one ladder: `check-core` with the byte-exact md5
+  anchor / `check-director` / `check-usd` public; `check-houdini` local-only).
+  Reconciled the haunted `AGENT-LOOP-AUDIT.md` — its bottom TRIAGE block (which
+  restated already-FIXED charges as open) is now marked SUPERSEDED-archival, so
+  the provenance machine no longer misreports its own provenance.
+- **P1 — diversity-aware survivor selection (`select_survivors`).** Greedy
+  facility-location: take the fittest *eligible* ship, then repeatedly the ship
+  best combining its own fitness with NEW family-signature variety
+  (`diversity_weight=0.35`, fitness still leads). `lineage_novelty` stopped being
+  a diagnostic and became a force. **Eligibility (legal AND fueled) is a HARD
+  pre-filter that runs BEFORE novelty** — a signature can read "novel" only
+  because a required family is missing (a broken ship), and that path is closed
+  by construction. Diversity moved off the flat 0.333 (e.g. pop-6: 0.5→0.667;
+  pop-10: 0.3→0.4→0.5). Every survivor stays legal+fueled (asserted). Selection
+  decisions are traced (`_log_select` → `gen_record["selection"]`).
+- **P1 §2c — bureaus.** Weight-mutation over one objective keeps rediscovering
+  one optimum; the fork has to be in the *objective*. `BUREAU_OBJECTIVES` lifts
+  the formerly-hard-coded fitness coefficients into named presets:
+  Guild-Structural (clean redundant frame), Feral-Repair (INVERTS the strut
+  penalty — scars ARE the aesthetic), Service-Network (plumbing/service depth),
+  Austerity (penalizes retelling siblings' event-story — the explicit
+  anti-attractor). A bureau is a dict of objective-weights, NOT a new agent: no
+  per-port/in-loop LLM call, no new legality. Two bureaus produce forensically
+  different ships from the same library (Guild strut/part 0.3 vs Feral 0.6 with
+  6 struts/4 repairs; Service 3 hoses + reactor/turret).
+- **P2 — repair policy promoted behind a flag (`repair_policy_active`, default
+  OFF).** `on_repair_choice`'s real `rank_braces` policy is now live when the
+  flag is set; proven byte-identical to the legacy `best`-accumulator on
+  canonical input (the policy computes the same `(-relief, L)` ordering), and a
+  new `test_repair_policy_promoted` proves the surface is genuinely live
+  (faction-divergent brace taste on a constructed tie).
+- **P4 — converged-fleet verification test strengthened** to the realistic case:
+  ≥8 ships with identical *rich* (4-family, legal+fueled) signatures → budget 0
+  (was a 2-ship disjoint case that never reached convergence).
+- **P5 — lineage-pathology dashboard surfaced** into `evolved_fleet.json`
+  (per-gen `dashboards`) + narrated in `EVOLVED-CATALOGUE.md`: diversity, best
+  fitness, avg monoculture, Goodhart warnings, scarcity shocks, verification
+  budget, bureau composition. The fixed Goodhart detector now *visibly fires*
+  and is narrated (pop-10 gen1: fitness 11.968, diversity 0.4 ≤ floor 0.5 →
+  budget 1). Self-critique became part of the artwork.
+- **Adversary pass (Cassandra v0.7).** Re-audited the new selection + bureau
+  code: (A) broken ship cannot win on novelty — HOLDS; (B) no new score()→
+  external_fitness channel — HOLDS; (C) no bureau co-climbs with the sampler —
+  HOLDS (Feral-Repair's scar-reward is the intended, bounded, eligibility-gated
+  inversion, not an exploit). One DEFERRED latent finding (best/best_overall
+  ranked without the eligibility filter, unreachable on current seeds) was
+  hardened anyway via shared `_is_eligible`/`_fittest_eligible` helpers — inert
+  on healthy runs (catalogue byte-stable), but closes the asymmetry.
+
+**v0.7 lessons (do not relearn):**
+1. *Defending against monoculture is not rewarding variety.* The loop measured
+   diversity then ignored it at selection time. Measuring a virtue ≠ selecting
+   for it. If a number is computed and recorded but never *selects*, it is
+   decoration.
+2. *Diversity-weighted selection alone won't escape the attractor* — mutating
+   weights over one objective rediscovers the same optimum. The fork must be in
+   the objective (bureaus), not just the weights.
+3. *Novelty is a Goodhart vector.* "New signature" can mean "broken ship missing
+   a required family." Any novelty reward MUST be gated by a hard
+   legal+fueled eligibility filter that runs BEFORE the novelty score, never as
+   a penalty term after.
+4. *A provenance machine must not misreport its own provenance.* The audit file
+   that argued with itself (fixed-above, open-below) reproduced the exact
+   haunted-ledger pattern the project exists to refuse. Reconcile QA docs.
+5. *Promote inert policy behind a flag, prove equivalence first.* "Should be
+   byte-identical" is how haunted ledgers are born — the flag lets you PROVE it
+   before the behavior is reachable.
+
+## P3 status note (anchorable surfaces)
+
+P3 in the v0.7 directive (face-level `anchor_class` 0/1/2 + surface normals) is
+the *refinement* of work already DONE: v0.8 shipped anchorable AABB volumes
+(struts no longer weld to glass — engine glow nozzle, antenna mast, radiator
+panel already excluded). The face/normal-level refinement (a part with an
+explicit no-anchor face) remains a v0.8-frontier schema bump, correctly ranked
+low; deferred this pass (it lands before the next Houdini *beauty* render, not
+before the next gate run). No md5 change here — the AABB layer already holds.
+
 ## Roadmap (priority order)
 
 0. ~~Engine-room hardening~~ DONE in v0.4 (see above).
@@ -558,10 +649,14 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
    (Apprentice, 2026-06-12): three deliverables + 11 wrapper HDAs (cook
    smoke-tested) + headless rehydrator + demo hip. See the v0.7-live
    section for the goblins found and fixed. Follow-up (native interiors):
-   IN PROGRESS in v0.10 — 2/11 families native (tank, engine), the
-   generalized gate `verify_native_hda.py` proves any family; 9 remain.
-   See the v0.10 section and `houdini/NATIVE-MIGRATION.md`.
-6. **Agent loop** — architecture is DECIDED, implement it as designed:
+   ~~COMPLETE in v0.12 — 11/11 families native~~ (gate `verify_native_hda.py`
+   784/784 green across all families; the v0.10 "2/11" status is superseded).
+   See the v0.10/v0.12 sections and `houdini/NATIVE-MIGRATION.md`.
+6. ~~**Agent loop**~~ DONE in v0.13 (the creative director, `director.py`) and
+   EXTENDED in v0.7 (this pass): diversity-aware survivor selection + bureaus.
+   Architecture as designed below — layered, mostly outside the loop, no
+   per-port LLM call. See the v0.7 section.
+   *(original design note, kept for provenance:)* implement it as designed:
    layered, mostly outside the loop. The agent is a creative director, not a
    servo. Three surfaces: (a) **brief author** before the run — wants,
    budgets, faction biases, capacity tunings; (b) **hooks** during the run,
@@ -575,9 +670,11 @@ anchor-strength terms); viewer draws all hose ctypes in one style.
    pressure (single-run exploits show up as lineage pathology); inject
    scarcity shocks. Multi-agent = design bureaus per faction; watch for
    taste collapse.
-7. **Borges catalogue**: PDG-style sweep, specimen renders, captions grown
-   from caption_seed + trace archaeology ("dorsal armament relocated following
-   volume concession" must describe a real logged event).
+7. ~~**Borges catalogue**~~ DONE: `make_catalogue.py` (canonical 5-ship) +
+   `make_evolved_catalogue.py` (bred lineage). v0.7 added the lineage-pathology
+   dashboard — captions now narrate the loop's own conscience (bureau identity,
+   Goodhart warnings, scarcity shocks, verification budget), every number read
+   from the ledger. Iron rule held: a caption number traces to a real field.
 
 ## Houdini integration — architecture DECIDED 2026-06-12, not yet built
 
