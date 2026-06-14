@@ -25,8 +25,26 @@ coordinate are authored as **float64** primvars/ops -> the round trip is
 the first; the verify gate's tolerances say so honestly.
 
 The cartoon body Mesh is the "cached opinion": USD `point3f` (float32) by
-schema, faction-colored via displayColor, present only so `usdview` can
-show a ship. The primvars are the truth; the mesh is a convenience.
+schema, present only so `usdview` can show a ship. The primvars are the
+truth; the mesh is a convenience.
+
+K2 — SHARED PART-ASSET LIBRARY (roadmap item 4 follow-up).
+Each family's *prototype* cartoon body lives ONCE, in usd/assets/<family>.usda,
+authored from a deterministic canonical cook gen_<family>(GUILD, seed=0) — the
+USD twin of the part HDA. Every ship's part Xform `references` its family asset
+instead of re-embedding the mesh; re-embedding the same body in every ship was
+the flat-dump anti-pattern. What rides the INSTANCE (never the asset):
+  * ALL provenance primvars (gen_params, mass, silhouette, join_strain,
+    anchor_faces, face_cls, typed kitmash:gp:*) — the TRUTH (inv 7);
+  * the P/orient xform ops — the placement;
+  * displayColor as an OVERRIDE — color is faction-specific (GUILD vs FERAL
+    share the geometry, differ only in colour), so color belongs to the
+    instance, not the shared prototype.
+The asset holds GEOMETRY ONLY (faction-independent — proven: no generator
+branches its mesh on faction). Per-instance gen_params variation (engine size,
+wing span, tank h, ...) is NOT in the shared prototype mesh; it is the truth on
+the primvars, and any host may re-render it via rehydrate(). The verify gate's
+cook test proves both halves honestly (see verify_usd.py).
 
 Run the gate:  .venv/bin/python verify_usd.py            (usd-core, no license)
                /opt/hfs21.0.729/bin/hython verify_usd.py (Houdini's own pxr)
@@ -38,13 +56,57 @@ import json
 import numpy as np
 from pxr import Usd, UsdGeom, Sdf, Gf, Vt, Tf
 
+import os
+
 import kitmash as km
 # Single-sourced, gate-7-proven extractors. Do NOT reimplement these here.
 from kitmash_houdini import (placements, strut_records, hose_records,
-                             open_ports, rehydrate, R_from_quat)
+                             open_ports, rehydrate, R_from_quat,
+                             GEN_REGISTRY)
 
 NS = "kitmash"
 SCHEMA = "kitmash/0.6"
+
+# The faction the canonical prototype is cooked under. Geometry is
+# faction-independent (no generator branches its mesh on faction; only colour
+# differs), so any faction yields the same prototype body — GUILD is the
+# arbitrary-but-fixed canon. Color is NOT baked into the asset (it rides the
+# instance as a displayColor override), so this choice never leaks colour.
+CANON_FC = km.GUILD
+
+
+# --------------------------------------------------------- canonical prototype
+def canonical_part(family):
+    """The deterministic prototype Part for a family — the asset library's
+    ground truth. gen_<family>(GUILD, seed=0) with all-default kwargs. Used
+    BOTH to author usd/assets/<family>.usda AND by the gate's cook test to
+    prove the reference arc resolves to the right body (a broken arc, or an
+    asset pointing at the wrong family, fails the <=1e-4 compare)."""
+    _, fn = GEN_REGISTRY[family]
+    return fn(CANON_FC)
+
+
+def canonical_points(family):
+    """Flat (N,3) float64 array of the prototype body's LOCAL points, in the
+    same vertex order _bake_part_mesh emits. The cook test's ground truth for
+    'the reference resolved to this exact prototype'."""
+    pts = []
+    for v, f, c in canonical_part(family).meshes:
+        pts.extend([float(x) for x in pos] for pos in v)
+    return np.array(pts, float)
+
+
+# Families that actually appear in the canonical fleet (built lazily so a
+# caller may author a subset). Authored as ASCII .usda, one per family.
+def fleet_families(ships):
+    """Every family placed across `ships`, in first-seen order — the set of
+    assets the library must author."""
+    seen = []
+    for _name, a, _off, _plate in ships:
+        for placed in a.placed:
+            if placed.family not in seen:
+                seen.append(placed.family)
+    return seen
 
 
 # --------------------------------------------------------------- name hygiene
@@ -118,28 +180,81 @@ def _provenance(api, rec, skip):
 
 
 # --------------------------------------------------------------- geometry bake
-def _bake_part_mesh(stage, parent_path, part):
-    """One child Mesh holding the part's local-space cartoon, faction-colored
-    via uniform displayColor. point3f (float32) — the cached opinion."""
-    pts, counts, idx, colors = [], [], [], []
+def _proto_prim_name(family):
+    """Top prim name inside usd/assets/<family>.usda (and the asset's
+    defaultPrim). Derived from the family alone so authoring and the gate stay
+    in sync."""
+    return _ident(family, fallback="Part")
+
+
+def _bake_proto_mesh(stage, parent_path, part):
+    """Author the PROTOTYPE body Mesh as a child `geo` under parent_path.
+    GEOMETRY ONLY — no displayColor (color is faction-specific and rides the
+    instance as an override). point3f (float32) — the cached opinion."""
+    pts, counts, idx = [], [], []
     base = 0
     for v, f, c in part.meshes:
-        rgb = _hex_rgb(c)
         for pos in v:
             pts.append(Gf.Vec3f(*(float(x) for x in pos)))
         for tri in f:
             counts.append(len(tri))
             idx.extend(int(base + k) for k in tri)
-            colors.append(Gf.Vec3f(*rgb))
         base += len(v)
     mesh = UsdGeom.Mesh.Define(stage, parent_path.AppendChild("geo"))
     mesh.CreatePointsAttr(Vt.Vec3fArray(pts))
     mesh.CreateFaceVertexCountsAttr(Vt.IntArray(counts))
     mesh.CreateFaceVertexIndicesAttr(Vt.IntArray(idx))
-    dc = mesh.CreateDisplayColorPrimvar(UsdGeom.Tokens.uniform)
-    dc.Set(Vt.Vec3fArray(colors))
     mesh.CreateSubdivisionSchemeAttr(UsdGeom.Tokens.none)
     return mesh
+
+
+def write_asset_library(assets_dir, families):
+    """Author one ASCII usd/assets/<family>.usda per family. Each holds a
+    single referenceable Xform (the family prototype), defaultPrim-marked so a
+    bare `references = @<family>.usda@` (no prim path) resolves to it. The body
+    is the deterministic canonical_part(family) cook — the USD twin of the part
+    HDA, and the gate's ground truth. Returns {family: abspath}."""
+    os.makedirs(assets_dir, exist_ok=True)
+    out = {}
+    for family in families:
+        path = os.path.join(assets_dir, f"{family}.usda")
+        if os.path.exists(path):
+            os.remove(path)            # CreateNew refuses to overwrite
+        astage = Usd.Stage.CreateNew(path)
+        UsdGeom.SetStageUpAxis(astage, UsdGeom.Tokens.y)
+        UsdGeom.SetStageMetersPerUnit(astage, 1.0)
+        proto = UsdGeom.Xform.Define(
+            astage, Sdf.Path(f"/{_proto_prim_name(family)}"))
+        pp = proto.GetPrim()
+        astage.SetDefaultPrim(pp)
+        pp.SetCustomDataByKey("kitmash:schema_version", SCHEMA)
+        pp.SetCustomDataByKey("kitmash:family", family)
+        _bake_proto_mesh(astage, proto.GetPath(), canonical_part(family))
+        astage.GetRootLayer().Save()
+        out[family] = os.path.abspath(path)
+    return out
+
+
+def _reference_family(xf, family, asset_uri):
+    """Reference the family's part-asset onto an instance Xform. asset_uri is
+    the layer identifier authored on the reference arc; the asset's defaultPrim
+    supplies the prim (so the instance's child `geo` composes through the arc).
+    """
+    xf.GetPrim().GetReferences().AddReference(asset_uri)
+
+
+def _author_face_color(prim, part):
+    """Faction color as a displayColor OVERRIDE on the instance's referenced
+    `geo` Mesh. Per-mesh-face uniform colors (a part may mix accent/dark on its
+    sub-bodies). Authored at the instance so the shared prototype stays
+    colorless and two factions can reference the same asset."""
+    colors = []
+    for v, f, c in part.meshes:
+        rgb = _hex_rgb(c)
+        colors.extend(Gf.Vec3f(*rgb) for _tri in f)
+    geo = UsdGeom.Mesh(prim.GetChild("geo"))
+    dc = geo.CreateDisplayColorPrimvar(UsdGeom.Tokens.uniform)
+    dc.Set(Vt.Vec3fArray(colors))
 
 
 def _linear_curve(stage, path, points, width):
@@ -156,15 +271,25 @@ def _linear_curve(stage, path, points, width):
 
 
 # ------------------------------------------------------------------ write side
-def write_usd(stage, a, ship_path, name="", plate="", offset=(0.0, 0.0, 0.0)):
+def write_usd(stage, a, ship_path, name="", plate="", offset=(0.0, 0.0, 0.0),
+              asset_uri=None):
     """Author one finished assembly under `ship_path` on `stage`. The ONLY
     function (with read_ship) that touches pxr; every value it writes comes
     from the host-agnostic extractors. Returns the ship Xform prim.
 
+    `asset_uri(family) -> str` resolves a family to the layer identifier its
+    part-asset lives at (K2 shared library). Each part Xform `references` that
+    asset (its child `geo` composes through the arc) instead of re-embedding
+    the body. If asset_uri is None the bodies are NOT embedded — only a host
+    that pairs write_usd with write_asset_library gets viewable geometry; the
+    decision layer (the truth) is authored regardless.
+
     Layout:
       <ship>            Xform  (xformOp:translate = plate offset; kitmash:* meta)
         Parts/<part>    Xform  (translate+orient = the placement; provenance
-                                primvars; typed kitmash:gp:*; child Mesh `geo`)
+                                primvars; typed kitmash:gp:*; references the
+                                family part-asset -> composed child Mesh `geo`;
+                                faction displayColor override on that geo)
         Struts/strut_i  BasisCurves (+ exact double a/b primvars + relief/...)
         Struts/collar_i Xform  (translate=pos; axis/up/r/strain primvars)
         Hoses/hose_i    BasisCurves (+ exact double pts primvar + ctype/dia)
@@ -226,7 +351,12 @@ def write_usd(stage, a, ship_path, name="", plate="", offset=(0.0, 0.0, 0.0)):
                   "hv": float(f["hv"]),
                   "cls": int(f["cls"])}
                  for f in af]))
-        _bake_part_mesh(stage, path, placed)
+        # K2: reference the family part-asset (its `geo` composes through the
+        # arc) instead of re-embedding the body. Faction color is an override
+        # on the composed geo — the shared prototype stays colorless.
+        if asset_uri is not None:
+            _reference_family(xf, placed.family, asset_uri(placed.family))
+            _author_face_color(xf.GetPrim(), placed)
 
     struts_scope = UsdGeom.Scope.Define(stage, ship_path.AppendChild("Struts"))
     stp = struts_scope.GetPath()
@@ -293,10 +423,22 @@ def write_usd(stage, a, ship_path, name="", plate="", offset=(0.0, 0.0, 0.0)):
     return sp
 
 
-def export_fleet(ships, path):
+def export_fleet(ships, path, assets_subdir="assets"):
     """ships: list of (name, assembler, offset, plate). Writes an ASCII
-    .usda (inspectable, git-diffable). Returns the stage."""
-    stage = Usd.Stage.CreateNew(str(path))
+    .usda (inspectable, git-diffable) PLUS the shared part-asset library under
+    <path's dir>/<assets_subdir>/. Each ship part references its family asset
+    by a RELATIVE uri (`assets/<family>.usda`) so the fleet + library are a
+    relocatable bundle. Returns the stage."""
+    path = str(path)
+    out_dir = os.path.dirname(os.path.abspath(path))
+    assets_dir = os.path.join(out_dir, assets_subdir)
+    families = fleet_families(ships)
+    write_asset_library(assets_dir, families)
+    # Relative asset uri keeps the .usda relocatable and the diff readable.
+    def asset_uri(family):
+        return f"./{assets_subdir}/{family}.usda"
+
+    stage = Usd.Stage.CreateNew(path)
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
     UsdGeom.SetStageMetersPerUnit(stage, 1.0)
     fleet = UsdGeom.Scope.Define(stage, "/Fleet")
@@ -305,7 +447,7 @@ def export_fleet(ships, path):
     for name, a, offset, plate in ships:
         token = _ident(name.split()[0])
         write_usd(stage, a, Sdf.Path(f"/Fleet/{token}"),
-                  name=name, plate=plate, offset=offset)
+                  name=name, plate=plate, offset=offset, asset_uri=asset_uri)
     stage.GetRootLayer().Save()
     return stage
 

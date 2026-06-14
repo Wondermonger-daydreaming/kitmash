@@ -11,6 +11,56 @@ sibling). The same JSON drives a self-contained three.js viewer, a USD export
 with `primvars:kitmash:*` provenance, and a Houdini rehydrator that instances
 artist-grade part HDAs from the recorded decisions.
 
+## See it run — the trace IS the genome
+
+Every frame below is rendered from `fleet.json` alone, and **every caption
+number is read straight out of that ship's `assembly_trace`** — never invented.
+Each placement, strut, eviction and collar you see is a *logged decision you can
+replay* (re-run the trace → byte-identical ship) or perturb (edit one event →
+counterfactual sibling). The GIFs are produced by the standalone
+`make_trace_gifs.py` (Pillow + numpy software renderer; **not** a gate, never a
+CI dependency).
+
+### Assembly — GS-α «Lawful Mean»
+
+![GS-α assembling part-by-part](media/assembly.gif)
+
+The hull is laid, then each part pops in *in commit order*. The caption quotes
+that exact `commit` event — `host_port`, `strain`, `mass_left` (e.g. `wing R ->
+core_hull#1/struct_M_2`, `mass_left 4198 kg`). When two cannons overhang the
+wings the moment goes over cap, so two `repair` events spawn relieving struts
+(`moment 29545 → cap 20000 → 12622`, `relief 0.57`); a mismatched sensor pod
+triggers an `adapter` collar (`strain 0.109`); a `hose` routes fuel → engine.
+The finish frame is the `stats` block: **10 parts, 9464 kg, 3 struts, 1 hose.**
+
+### Face-level weld — FV-ε «Loom»
+
+![FV-ε strut welding to a declared face](media/face_weld.gif)
+
+Struts weld to *declared faces*, not generic hull. Two `repair` events relieve
+the turret joint with the ledger's real numbers: `moment 2045 → cap 1818 → 397`,
+`relief 0.81` per weld. The math lives in the trace, not in the artist's eye.
+
+### Port auction — FV-δ «Cold Shoulder»
+
+![FV-δ auctions firing](media/auction.gif)
+
+Four scarce ports go to `auction`. Each frame names the real bid: e.g.
+`challenger antenna 2.39 vs incumbent radiator 4.22`, `scarcity 0.5`,
+`result: incumbent_holds`. The held ports never change hands — the cold
+shoulder is *logged*, not asserted.
+
+### Retrofit collar — GS-α «Lawful Mean»
+
+![GS-α adapter collar spawning](media/collar.gif)
+
+A part lands on a mismatched port within tolerance, so an `adapter` event logs a
+collar: `strain 0.109` → `result: collar_spawned`. Replay the trace and the same
+collar reappears in the same place.
+
+> Regenerate locally (needs Pillow, which is *not* required for any gate):
+> `<venv python> make_trace_gifs.py` — writes the four GIFs into `media/`.
+
 ## Status
 
 Verified against `KITMASH-HANDOFF.md`, the per-version sections, the test

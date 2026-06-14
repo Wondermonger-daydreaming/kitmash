@@ -733,6 +733,56 @@ candidate (Cassandra D2, an optimization, would re-baseline so deferred
 deliberately); and the AABB path is now dead code on the canonical fleet (correct
 for custom `anchor_faces=None` parts, just unexercised).
 
+## v0.9 — visibility GIFs + USD referenced part-assets (2026-06-14)
+
+Two disjoint bodies of work, fanned out (PHOTON + KEYSTONE), adversarially
+signed off (CASSANDRA — `_staging/cassandra-session-audit.md`, no body found),
+and orchestrator-verified against the full ladder. **Anchor unmoved**
+(`80ddaccccc594b2a7cc8c7b40a129086`); `kitmash.py` untouched by both.
+
+1. **Visibility — forensic trace GIFs (PHOTON).** New standalone
+   `make_trace_gifs.py` (numpy + Pillow software renderer; painter's-sort, no
+   matplotlib) reads `fleet.json` and emits four looping GIFs into `media/`:
+   `assembly.gif` (GS-α true part-by-part build in `commit` order), `face_weld.gif`
+   (FV-ε repair struts), `auction.gif` (FV-δ port auctions), `collar.gif` (adapter).
+   **Every caption number is read from the ledger** (inv 11; CASSANDRA grepped each
+   off the rendered frames — all present in `fleet.json`). README gained a
+   "See it run — the trace IS the genome" section embedding them. **Pillow is NOT
+   a gate dependency** — the script is not in `run_all_gates.sh` and the ladder
+   needs no PIL. Honest gaps: only `assembly.gif` is true geometry animation (the
+   other three are captioned highlight sequences); the declared anchor *face* is
+   captioned, not drawn; the camera is near-static. (Live three.js trace-inspector
+   demo — RELAY open item 1 — remains the bigger visibility win; GIFs are the
+   cheap down-payment.)
+
+2. **USD referenced part-assets — K2 shipped (KEYSTONE).** Roadmap item 4
+   follow-up, the explicit RELAY priority. Each ship part now
+   `references = @./assets/<family>.usda@` a single canonical per-family part-asset
+   (the USD twin of the part HDA, cooked deterministically from
+   `gen_<family>(GUILD, seed=0)`) instead of re-embedding its body. The decision
+   layer — every provenance primvar, `gen_params`, `anchor_faces`, `face_cls`,
+   struts/hoses/ports, P/orient — stays authored on the **instance** as the truth
+   (inv 7 made literal: one authored part, many ships). Faction `displayColor` is a
+   per-instance override (geometry is faction-independent; GUILD/FERAL cooks are
+   `np.allclose` per family). New library: `usd/assets/<family>.usda` ×10
+   (`terminator_cap` correctly absent — unplaced in the canonical five).
+   **The cook test was rewritten honestly into three flip-tested halves** so it
+   SELECTS rather than decorating: (a) the reference resolves to real points;
+   (b) the composed body == the family's canonical prototype (≤1e-4); (c) the
+   **per-instance** body, rehydrated from `gen_params` via the gate-7-proven
+   `rehydrate()`, composed through the authored xform, == assembler world geometry
+   (≤1e-4). CASSANDRA independently reproduced all three RED-on-flip (drop arc →
+   geo None; +0.5 proto coord → err 0.5; +90° orient → world err 5.49) and proved
+   (c) is no tautology (31/47 parts' truth body diverges from the prototype).
+   **`verify_usd.py` = 914 checks** (857→914: +47 per-part ref-resolves + 10 from
+   the cook-line split), green in BOTH usd-core and hython. Honest gaps: usdview
+   renders every instance at canonical size (per-instance silhouette lives in
+   primvars — doctrine-correct, but a naive viewer won't re-render it without a
+   host-side rehydrate-on-load); per-face `displayColor` override is verbose
+   (a `UsdShade` material layer is the cleaner home); `usd/assets/` is
+   fleet-*sufficient*, not registry-*complete* (no "every family has an asset"
+   gate yet).
+
 ## Roadmap (priority order)
 
 0. ~~Engine-room hardening~~ DONE in v0.4 (see above).

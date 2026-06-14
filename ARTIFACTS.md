@@ -33,7 +33,12 @@ generator, the generator wins. Do not hand-edit.
 - `CATALOGUE.md` / `CATALOGUE.html` ← `make_catalogue.py`
 - `EVOLVED-CATALOGUE.md` ← `make_evolved_catalogue.py`
 - `kitmash-fleet.html` (the three.js viewer) ← `make_viewer.py fleet.json`
-- `usd/kitmash_fleet.usda` ← `make_fleet_usd.py`
+- `usd/kitmash_fleet.usda` ← `make_fleet_usd.py` (composes its part bodies from
+  `usd/assets/` via `references`)
+- `usd/assets/<family>.usda` (the shared per-family part-asset library, v0.9) ←
+  `make_fleet_usd.py` (authored on the fly from the canonical `gen_<family>` cook)
+- `media/*.gif` (the v0.9 forensic trace GIFs) ← `make_trace_gifs.py` (standalone;
+  needs Pillow, which is **not** a gate dependency)
 - the `*.png.cam.usda` camera sidecars ← the render scripts
 
 Recommended policy: regenerate these in a release step (or via

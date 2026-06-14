@@ -19,18 +19,31 @@ recovered decision records against the host-agnostic extractors:
   - hoses: ctype/style/dia/kinds + every polyline vertex (exact)
   - open ports: full port schema (exact)
 
-  - THE COOK TEST: compose each part's authored USD xform (translate+orient)
-    against the rehydrated LOCAL mesh and compare to the assembler's WORLD
-    geometry (<=1e-4, float32 point storage + matrix math). A provenance
-    round trip that never composes the transform could carry a wrong-handed
-    orient quaternion while every primvar matches — green over broken, the
-    v0.7 "built is not cooks" failure mode. This check forbids it.
+  - THE COOK TEST (K2, three honest halves — see verify_ship). Under K2 the
+    body is a SHARED family prototype referenced from usd/assets/, not the
+    per-instance mesh, so the old "composed embedded mesh == world" tautology
+    no longer holds (per-instance gen_params variation rides primvars as truth,
+    inv 7). The rewrite proves what is now actually true:
+      (a) the reference RESOLVES: prim.GetChild("geo") composes through the arc
+          and carries real points (a dropped/broken arc -> empty -> FAIL);
+      (b) the referenced body == the family's CANONICAL prototype cook
+          (<=1e-4): a wrong-family asset, or an asset built from the wrong cook,
+          fails the compare;
+      (c) the INSTANCE xform composes to world (<=1e-4): rehydrate the
+          per-instance body from its gen_params (the TRUTH), apply the authored
+          translate+orient, compare to the assembler's WORLD geometry. A
+          wrong-handed orient quaternion fails here even though every primvar
+          matches — the v0.7 "built is not cooks" failure mode, still forbidden.
+    Each half can FAIL on a wrong expected value (proven by flip-test in the
+    KEYSTONE receipt). The decision-layer round trip below is UNCHANGED.
 
 Exit 0 = round trip proven in this runtime. Any drift prints and exits 1.
 """
 import json
 import os
+import shutil
 import sys
+import tempfile
 
 import numpy as np
 from pxr import Usd, UsdGeom, Sdf, Gf
@@ -122,28 +135,59 @@ def verify_ship(stage, ship_path, a, name):
             check(f"[{name}] {pid}.anchor_faces ({len(py_af)} faces)", ok,
                   f"got {got_af!r}")
 
-    # ---- THE COOK TEST: compose the xform, compare to world geometry ----
+    # ---- THE COOK TEST (K2): three honest halves ----------------------------
+    # (a) the reference arc resolves to a real body; (b) the referenced body is
+    # the family's canonical prototype; (c) the authored xform composes the
+    # PER-INSTANCE body (rehydrated from gen_params — the truth) to world.
     parts_prim = stage.GetPrimAtPath(f"{ship_path}/Parts")
     kids = sorted(parts_prim.GetChildren(),
                   key=lambda p: int(p.GetName().split("_")[0][4:]))
-    worst = 0.0
-    for prim, placed in zip(kids, a.placed):
-        M = ku.read_local_to_world(prim)
-        meshprim = UsdGeom.Mesh(prim.GetChild("geo"))
-        local = np.array([[p[0], p[1], p[2]]
-                          for p in meshprim.GetPointsAttr().Get()])
-        composed = np.array([list(M.Transform(Gf.Vec3d(*map(float, p))))
-                             for p in local])
-        world = np.vstack([v for v, f, c in placed.world])
-        # match point counts/order: bake order in _bake_part_mesh follows
-        # placed.meshes; placed.world is the same meshes transformed.
-        if composed.shape == world.shape:
-            worst = max(worst, float(np.abs(composed - world).max()))
+    worst_proto = 0.0    # (b) referenced body vs canonical prototype, local
+    worst_world = 0.0    # (c) composed per-instance body vs assembler world
+    n_resolved = 0
+    for prim, placed, rec in zip(kids, a.placed, got):
+        geo_prim = prim.GetChild("geo")
+        # (a) reference RESOLVES: child geo composed through the arc, real pts.
+        geo_pts = None
+        if geo_prim and geo_prim.IsValid():
+            gp_attr = UsdGeom.Mesh(geo_prim).GetPointsAttr().Get()
+            if gp_attr is not None and len(gp_attr) > 0:
+                geo_pts = np.array([[p[0], p[1], p[2]] for p in gp_attr])
+        check(f"[{name}] {placed.uid} ref resolves (geo has points)",
+              geo_pts is not None,
+              "GetChild('geo') missing/empty -> reference arc dropped")
+        if geo_pts is None:
+            continue
+        n_resolved += 1
+        # (b) referenced body == the family CANONICAL prototype (local space).
+        proto = ku.canonical_points(placed.family)
+        if geo_pts.shape == proto.shape:
+            worst_proto = max(worst_proto,
+                              float(np.abs(geo_pts - proto).max()))
         else:
-            check(f"[{name}] {placed.uid} mesh shape",
+            check(f"[{name}] {placed.uid} proto shape",
+                  False, f"{geo_pts.shape} vs {proto.shape}")
+        # (c) authored xform composes the PER-INSTANCE body to world. The
+        # per-instance body comes from rehydrate(rec) — the gate-7 truth path,
+        # NOT the embedded mesh — so this proves the *truth* re-renders and the
+        # orient is right-handed, independent of what body the asset carries.
+        part_i, _R, _t = kh.rehydrate(rec)
+        local_i = np.vstack([v for v, f, c in part_i.meshes])
+        M = ku.read_local_to_world(prim)
+        composed = np.array([list(M.Transform(Gf.Vec3d(*map(float, p))))
+                             for p in local_i])
+        world = np.vstack([v for v, f, c in placed.world])
+        if composed.shape == world.shape:
+            worst_world = max(worst_world, float(np.abs(composed - world).max()))
+        else:
+            check(f"[{name}] {placed.uid} world shape",
                   False, f"{composed.shape} vs {world.shape}")
-    check(f"[{name}] cook: composed xform == world geometry (<=1e-4)",
-          worst <= 1e-4, f"worst point error {worst:.2e}")
+    check(f"[{name}] cook(a): every part reference resolved",
+          n_resolved == len(kids), f"{n_resolved}/{len(kids)} resolved")
+    check(f"[{name}] cook(b): referenced body == canonical prototype (<=1e-4)",
+          worst_proto <= 1e-4, f"worst proto error {worst_proto:.2e}")
+    check(f"[{name}] cook(c): composed instance xform == world geom (<=1e-4)",
+          worst_world <= 1e-4, f"worst world error {worst_world:.2e}")
 
     # ---- struts / collars ----
     sr = kh.strut_records(a)
@@ -214,18 +258,32 @@ def main():
     print(f"USD runtime: pxr {_Usd.GetVersion()}  "
           f"({'hython' if 'hou' in sys.modules or os.environ.get('HFS') else 'usd-core'})")
     ships = build_fleet()
+    # K2: the part-asset library must exist on disk for the reference arcs to
+    # resolve (an in-memory stage has no anchor for relative uris). Author it to
+    # a temp dir and reference by ABSOLUTE uri — the gate proves the composition
+    # works without depending on the committed usd/assets/ being current.
+    tmpdir = tempfile.mkdtemp(prefix="kitmash_assets_")
+    families = ku.fleet_families(ships)
+    asset_paths = ku.write_asset_library(tmpdir, families)
+    def asset_uri(family):
+        return asset_paths[family]
+
     stage = Usd.Stage.CreateInMemory()
     UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
     fleet = UsdGeom.Scope.Define(stage, "/Fleet")
-    for name, a, offset, plate in ships:
-        token = ku._ident(name.split()[0])
-        ku.write_usd(stage, a, Sdf.Path(f"/Fleet/{token}"),
-                     name=name, plate=plate, offset=offset)
-    # verify every ship in the fleet (not just GS-α): each exercises a
-    # different corner — δ auctions, ε the loom/multi-conduit hoses.
-    for name, a, offset, plate in ships:
-        token = ku._ident(name.split()[0])
-        verify_ship(stage, f"/Fleet/{token}", a, name.split()[0])
+    try:
+        for name, a, offset, plate in ships:
+            token = ku._ident(name.split()[0])
+            ku.write_usd(stage, a, Sdf.Path(f"/Fleet/{token}"),
+                         name=name, plate=plate, offset=offset,
+                         asset_uri=asset_uri)
+        # verify every ship in the fleet (not just GS-α): each exercises a
+        # different corner — δ auctions, ε the loom/multi-conduit hoses.
+        for name, a, offset, plate in ships:
+            token = ku._ident(name.split()[0])
+            verify_ship(stage, f"/Fleet/{token}", a, name.split()[0])
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     print()
     if FAIL:
