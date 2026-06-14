@@ -619,15 +619,87 @@ behavior is reachable only through an explicitly attached director).
    byte-identical" is how haunted ledgers are born — the flag lets you PROVE it
    before the behavior is reachable.
 
-## P3 status note (anchorable surfaces)
+## v0.8.1 — P3: face-level anchorable surfaces (2026-06-14)
 
-P3 in the v0.7 directive (face-level `anchor_class` 0/1/2 + surface normals) is
-the *refinement* of work already DONE: v0.8 shipped anchorable AABB volumes
-(struts no longer weld to glass — engine glow nozzle, antenna mast, radiator
-panel already excluded). The face/normal-level refinement (a part with an
-explicit no-anchor face) remains a v0.8-frontier schema bump, correctly ranked
-low; deferred this pass (it lands before the next Houdini *beauty* render, not
-before the next gate run). No md5 change here — the AABB layer already holds.
+P3 core landed. The v0.8 AABB layer said *where* a strut may weld (a box); P3
+says *what surface* it welds to — a plane with an outward NORMAL and an
+`anchor_class`. This is the refinement the v0.7 directive named.
+
+**THE ANCHOR WAS DELIBERATELY RE-BASELINED.**
+```
+  old  e6aeccfe352bba16f288785ea23e5bc3   (v0.8, hull = whole-box anchor)
+  new  80ddaccccc594b2a7cc8c7b40a129086   (v0.8.1, hull declares weld FACES)
+```
+Why it moved: the hull is the universal strut anchor and previously declared
+*nothing* (legacy whole-AABB), so a brace could weld anywhere in its bounding
+box — the aero nose cone included. P3 gives the hull six declared faces
+(deck/belly/flanks `cls 2` primary, aft bulkhead `cls 1` secondary, **nose
+`cls 0` glass — never weldable**), so every canonical strut endpoint and its
+repair-trace relief shifted. **Topology is invariant**: all 5 ships keep their
+exact parts/mass/strut/hose counts and stay legal+fueled (verified). Only weld
+points and relief changed. The re-baseline is recorded in every gate
+(`test_kitmash.py`, `test_director.py`, `run_all_gates.sh`) and doc
+(`README.md`, `ARTIFACTS.md`, `AGENT-LOOP-SPEC.md`).
+
+**Schema (additive).** `Part.anchor_faces` — list of `make_face(c, n, hu, hv,
+cls, u=None)` dicts: centre `c`, outward unit normal `n`, in-plane axis `u`
+(`v = n×u`), half-extents `hu/hv`, `cls ∈ {0,1,2}`. `None` falls back to
+`anchor_vols`, which falls back to whole-AABB — so **every part without faces is
+byte-identical to v0.8** (only the hull declares faces this pass). Transformed to
+world (`w_anchor_faces`) at commit/run via the same rotation `xform_face` uses
+for points (centre) and directions (normal, u).
+
+**Relief model (doctrine-clean — mediation, not a new legality check).**
+`relief = (0.35 + 0.5·sin(strut vs member axis)) · (0.6 + 0.4·|sdir·n|) ·
+ANCHOR_CLASS_RELIEF[cls]`, with `{2: 1.0, 1: 0.65}`. The middle term rewards a
+strut pulling NORMAL-ON over one that shears; `cls 0` yields *no candidate*
+(declared glass refuses). A perfect class-2 normal-on weld equals the old relief
+(`align`→1, factor→1), so ships still brace; only shear / secondary welds are
+trimmed — which is physically honest. Live proof: FV-ε's turret braces jumped
+relief 0.35→0.81 (box could only offer a near-parallel weld; the face path found
+a normal-on one). Legality stayed at ~7 checks.
+
+**Gate 9** (`test_face_anchor_semantics`, `test_kitmash.py` now 10 gates) proves
+the faces SELECT and are not decoration (the v0.7 lesson): a class-0 face refuses
+the weld (arm starves); identical geometry at class 1 vs 2 scales recorded relief
+by *exactly* `ANCHOR_CLASS_RELIEF[2]/[1]` = 1.538 (equal reliefs would mean the
+class was inert metadata); a primary face beats a co-located secondary.
+Provenance: `strut_segs[*].face_cls` records which class took each weld.
+
+**DEFERRED breadth (honestly not done — the three places this could lie about
+being finished):**
+
+The Phase-2 fan-out (FOUNDRY + CONDUIT + CASSANDRA, same session) closed most of
+the breadth. Honest status:
+
+1. **Per-family faces — DONE.** All 10 non-hull families declare `anchor_faces`
+   with real normals and honest glass (engine glow-nozzle, radiator panel, wing
+   skin, cannon barrel, pod dome, antenna mast all `cls 0`; load-bearing slabs
+   `cls 2`). Gate 10 (`test_family_face_coverage`) proves 10/10 coverage + 8
+   `cls 0` glass faces sterile. md5 unchanged (leaves never anchor struts in the
+   canonical fleet). *(The original DEFERRED text here claimed only the hull was
+   faced — Cassandra C3 caught it as a provenance lie; corrected.)*
+2. **DCC export — DONE for USD, host-agnostic for Houdini.** `anchor_faces` now
+   ride **`primvars:kitmash:anchor_faces`** (USD, round-trip in `verify_usd.py`,
+   857 checks green) and **`s@anchor_faces`** detail attr + **`i@face_cls`** strut
+   point attr (Houdini `write_part_geo`/`write_geo`). The committed
+   `usd/kitmash_fleet.usda` carries 47 face primvars. **Still open:** live
+   *hython* verification of the Houdini face attrs (`verify_native_hda.py` has the
+   check block but it is hython-gated — verified host-agnostically only; run it
+   under `/opt/hfs21.0.729/bin/hython` before the next Houdini beauty render).
+3. **Cassandra pass — DONE.** Full adversarial audit at
+   `_staging/cassandra-p3.md`: 6 charges, all HOLD except one CONFIRMED latent
+   (C2c, a zero-length normal normalized to NaN and a NaN-relief brace *won*
+   because best-is-None seeds it). **Fixed:** `make_face` now raises `ValueError`
+   on a degenerate normal / in-plane axis / bad class (fail at authoring, not
+   creep as NaN), with a `not (d>=0.15)` net in `propose_strut` and a gate-9
+   regression assertion. Relief stays bounded at 0.85/brace (0.9775 composed) —
+   duplicate faces buy nothing.
+
+**Genuinely remaining (small):** live-hython sign-off on the Houdini face attrs;
+the u-edge triangulation candidate (Cassandra D2, an optimization, would
+re-baseline so deferred deliberately); and the AABB path is now dead code on the
+canonical fleet (correct for custom `anchor_faces=None` parts, just unexercised).
 
 ## Roadmap (priority order)
 

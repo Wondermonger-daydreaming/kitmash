@@ -185,6 +185,36 @@ def verify_family(family, fc, seed):
     if g.findGlobalAttrib("anchor_vols") is not None:
         check(f"{tag} anchor_vols",
               _aabbs_eq(g.attribValue("anchor_vols"), pypart.anchor_vols))
+    # P3: anchor_faces — the detail attr is a JSON string (like anchor_vols but
+    # with face dicts {c,n,u,hu,hv,cls}). None serialises as "null".
+    # NOTE: this check requires hython (hou.Geometry.attribValue on Global attrs);
+    # host-agnostic stub verification is in write_part_geo's own logic.
+    # LIVE-HYTHON VERIFICATION: deferred — flag for next hython session.
+    if g.findGlobalAttrib("anchor_faces") is not None:
+        check(f"{tag} anchor_faces present", True)   # attr exists = exported
+        af_json = g.attribValue("anchor_faces")
+        py_af = pypart.anchor_faces
+        if py_af is None:
+            check(f"{tag} anchor_faces null", af_json == "null",
+                  f"expected 'null' got {af_json!r}")
+        else:
+            try:
+                got = json.loads(af_json)
+                ok = (isinstance(got, list) and len(got) == len(py_af))
+                if ok:
+                    for gf, pf in zip(got, py_af):
+                        ok = ok and (
+                            np.allclose(gf["c"], pf["c"], atol=1e-5) and
+                            np.allclose(gf["n"], pf["n"], atol=1e-5) and
+                            np.allclose(gf["u"], pf["u"], atol=1e-5) and
+                            abs(gf["hu"] - float(pf["hu"])) <= 1e-5 and
+                            abs(gf["hv"] - float(pf["hv"])) <= 1e-5 and
+                            int(gf["cls"]) == int(pf["cls"])
+                        )
+                check(f"{tag} anchor_faces ({len(py_af)} faces)", ok,
+                      f"got {af_json!r}")
+            except (json.JSONDecodeError, KeyError) as e:
+                check(f"{tag} anchor_faces parse", False, str(e))
 
     # ---- body bbox vs the cartoon ----
     pyv = np.vstack([v for v, f, c in pypart.meshes])

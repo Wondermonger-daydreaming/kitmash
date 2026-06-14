@@ -38,8 +38,8 @@ generator, the generator wins. Do not hand-edit.
 
 Recommended policy: regenerate these in a release step (or via
 `./run_all_gates.sh` plus the catalogue rung) rather than editing by hand, and
-verify the byte-exact anchor (`fleet.json` md5 `e6aeccfe352bba16f288785ea23e5bc3`)
-after any engine change.
+verify the byte-exact anchor (`fleet.json` md5 `80ddaccccc594b2a7cc8c7b40a129086`,
+re-baselined from `e6aeccfe…` by the P3 hull weld-faces) after any engine change.
 
 ## Large binaries / LFS candidates
 

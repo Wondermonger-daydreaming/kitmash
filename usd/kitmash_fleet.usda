@@ -33,7 +33,7 @@ def Scope "Fleet" (
         string primvars:kitmash:stats = '{"parts": 10, "mass": 9464, "struts": 3, "hoses": 1}' (
             interpolation = "constant"
         )
-        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 7, "faction": "High Guild"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#1"}, {"ev": "commit", "part": "engine", "part_id": "engine#3", "host_port": "core_hull#1/struct_M_1", "part_port": "engine#3/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#9", "host_port": "core_hull#1/struct_M_4", "part_port": "fuel_tank#9/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4760}}, {"ev": "commit", "part": "wing R", "part_id": "wing#18", "host_port": "core_hull#1/struct_M_2", "part_port": "wing#18/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4198}}, {"ev": "commit", "part": "wing L", "part_id": "wing#26", "host_port": "core_hull#1/struct_M_3", "part_port": "wing#26/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3635}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 29545, "cap": 20000, "struts": 1, "relief": 0.61, "moment_after": 11597}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#34", "host_port": "wing#18/mount_rail_1", "part_port": "heavy_cannon#34/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2685}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 29545, "cap": 20000, "struts": 1, "relief": 0.61, "moment_after": 11597}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#41", "host_port": "wing#26/mount_rail_1", "part_port": "heavy_cannon#41/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1735}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#49", "host_port": "core_hull#1/struct_S_1", "part_port": "antenna#49/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1695}}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.109}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#57", "host_port": "core_hull#1/struct_S_2", "part_port": "sensor_pod#57/struct_S_1", "metrics": {"strain": 0.109, "mass_left": 1575}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#63", "host_port": "core_hull#1/struct_S_3", "part_port": "antenna#63/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1535}}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
+        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 7, "faction": "High Guild"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#1"}, {"ev": "commit", "part": "engine", "part_id": "engine#3", "host_port": "core_hull#1/struct_M_1", "part_port": "engine#3/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#9", "host_port": "core_hull#1/struct_M_4", "part_port": "fuel_tank#9/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4760}}, {"ev": "commit", "part": "wing R", "part_id": "wing#18", "host_port": "core_hull#1/struct_M_2", "part_port": "wing#18/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4198}}, {"ev": "commit", "part": "wing L", "part_id": "wing#26", "host_port": "core_hull#1/struct_M_3", "part_port": "wing#26/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3635}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 29545, "cap": 20000, "struts": 1, "relief": 0.57, "moment_after": 12622}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#34", "host_port": "wing#18/mount_rail_1", "part_port": "heavy_cannon#34/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2685}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 29545, "cap": 20000, "struts": 1, "relief": 0.57, "moment_after": 12622}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#41", "host_port": "wing#26/mount_rail_1", "part_port": "heavy_cannon#41/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1735}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#49", "host_port": "core_hull#1/struct_S_1", "part_port": "antenna#49/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1695}}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.109}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#57", "host_port": "core_hull#1/struct_S_2", "part_port": "sensor_pod#57/struct_S_1", "metrics": {"strain": 0.109, "mass_left": 1575}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#63", "host_port": "core_hull#1/struct_S_3", "part_port": "antenna#63/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1535}}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
             interpolation = "constant"
         )
         double3 xformOp:translate = (0, -7.5, 0)
@@ -43,6 +43,9 @@ def Scope "Fleet" (
         {
             def Xform "part0_core_hull_1"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.9], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 0.0, -0.9], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 1.1, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [0.0, -1.1, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [-3.5, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 1.1, "hv": 0.9, "cls": 1}, {"c": [4.9, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.5, "hv": 0.5, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -106,6 +109,9 @@ def Scope "Fleet" (
 
             def Xform "part1_engine_3"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [-1.0, 0.95, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, -0.95, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, 0.95], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, -0.95], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [0.0, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.95, "hv": 0.95, "cls": 2}, {"c": [-3.0, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.55, "hv": 0.55, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -169,6 +175,9 @@ def Scope "Fleet" (
 
             def Xform "part2_fuel_tank_9"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.35, "cls": 2}, {"c": [0.35, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [-0.35, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [0.0, 0.35, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}, {"c": [0.0, -0.35, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -232,6 +241,9 @@ def Scope "Fleet" (
 
             def Xform "part3_wing_18"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.25, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.75, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -298,6 +310,9 @@ def Scope "Fleet" (
 
             def Xform "part4_wing_26"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.25, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.75, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -364,6 +379,9 @@ def Scope "Fleet" (
 
             def Xform "part5_heavy_cannon_34"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [1.6, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -427,6 +445,9 @@ def Scope "Fleet" (
 
             def Xform "part6_heavy_cannon_41"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [1.6, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -490,6 +511,9 @@ def Scope "Fleet" (
 
             def Xform "part7_antenna_49"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.1], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.15, "cls": 2}, {"c": [0.15, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [-0.15, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [0.0, 0.15, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, -0.15, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, 0.0, 1.114640565652526], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.03, "hv": 0.03, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -553,6 +577,9 @@ def Scope "Fleet" (
 
             def Xform "part8_sensor_pod_57"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.0], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.31688171471625176, "hv": 0.31688171471625176, "cls": 2}, {"c": [0.31688171471625176, 0.0, -0.45], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [-0.31688171471625176, 0.0, -0.45], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.31688171471625176, -0.45], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.31688171471625176, "hv": 0.45, "cls": 1}, {"c": [0.0, -0.31688171471625176, -0.45], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.31688171471625176, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.0, -0.85], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 0.31688171471625176, "hv": 0.31688171471625176, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -616,6 +643,9 @@ def Scope "Fleet" (
 
             def Xform "part9_antenna_63"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.1], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.15, "cls": 2}, {"c": [0.15, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [-0.15, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [0.0, 0.15, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, -0.15, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, 0.0, 1.1224184355971765], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.03, "hv": 0.03, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -693,16 +723,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (0.7537190082644628, 1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#34" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.607 (
+                double primvars:kitmash:relief = 0.573 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -724,16 +757,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (0.7537190082644628, -1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#41" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.607 (
+                double primvars:kitmash:relief = 0.573 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 3 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -823,7 +859,7 @@ def Scope "Fleet" (
         string primvars:kitmash:stats = '{"parts": 8, "mass": 10971, "struts": 6, "hoses": 1}' (
             interpolation = "constant"
         )
-        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 7, "faction": "High Guild"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#65"}, {"ev": "commit", "part": "engine", "part_id": "engine#67", "host_port": "core_hull#65/struct_M_1", "part_port": "engine#67/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#73", "host_port": "core_hull#65/struct_M_4", "part_port": "fuel_tank#73/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4760}}, {"ev": "commit", "part": "wing R", "part_id": "wing#82", "host_port": "core_hull#65/struct_M_2", "part_port": "wing#82/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4029}}, {"ev": "commit", "part": "wing L", "part_id": "wing#90", "host_port": "core_hull#65/struct_M_3", "part_port": "wing#90/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3298}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "cannon", "moment_before": 80800, "cap": 32500, "struts": 1, "relief": 0.85, "moment_after": 12120}, "result": "accepted"}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 82415, "cap": 20000, "struts": 2, "relief": 0.8, "moment_after": 16729}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#98", "host_port": "wing#82/mount_rail_1", "part_port": "heavy_cannon#98/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1683}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "cannon", "moment_before": 80800, "cap": 32500, "struts": 1, "relief": 0.85, "moment_after": 12120}, "result": "accepted"}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 82415, "cap": 20000, "struts": 2, "relief": 0.8, "moment_after": 16729}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#105", "host_port": "wing#90/mount_rail_1", "part_port": "heavy_cannon#105/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 68}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#113", "host_port": "core_hull#65/struct_S_1", "part_port": "antenna#113/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 28}}, {"ev": "reject", "part": "sensor pod", "cause": "mass_budget", "kg_over": 91}, {"ev": "reject", "part": "antenna", "cause": "mass_budget", "kg_over": 11}, {"ev": "reject", "part": "sensor pod", "cause": "mass_budget", "kg_over": 91}, {"ev": "reject", "part": "antenna", "cause": "mass_budget", "kg_over": 11}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
+        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 7, "faction": "High Guild"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#65"}, {"ev": "commit", "part": "engine", "part_id": "engine#67", "host_port": "core_hull#65/struct_M_1", "part_port": "engine#67/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#73", "host_port": "core_hull#65/struct_M_4", "part_port": "fuel_tank#73/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4760}}, {"ev": "commit", "part": "wing R", "part_id": "wing#82", "host_port": "core_hull#65/struct_M_2", "part_port": "wing#82/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4029}}, {"ev": "commit", "part": "wing L", "part_id": "wing#90", "host_port": "core_hull#65/struct_M_3", "part_port": "wing#90/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3298}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "cannon", "moment_before": 80800, "cap": 32500, "struts": 1, "relief": 0.85, "moment_after": 12120}, "result": "accepted"}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 82415, "cap": 20000, "struts": 2, "relief": 0.78, "moment_after": 18111}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#98", "host_port": "wing#82/mount_rail_1", "part_port": "heavy_cannon#98/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1683}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "cannon", "moment_before": 80800, "cap": 32500, "struts": 1, "relief": 0.85, "moment_after": 12120}, "result": "accepted"}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 82415, "cap": 20000, "struts": 2, "relief": 0.78, "moment_after": 18111}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#105", "host_port": "wing#90/mount_rail_1", "part_port": "heavy_cannon#105/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 68}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#113", "host_port": "core_hull#65/struct_S_1", "part_port": "antenna#113/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 28}}, {"ev": "reject", "part": "sensor pod", "cause": "mass_budget", "kg_over": 91}, {"ev": "reject", "part": "antenna", "cause": "mass_budget", "kg_over": 11}, {"ev": "reject", "part": "sensor pod", "cause": "mass_budget", "kg_over": 91}, {"ev": "reject", "part": "antenna", "cause": "mass_budget", "kg_over": 11}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
             interpolation = "constant"
         )
         double3 xformOp:translate = (0, 0, 0)
@@ -833,6 +869,9 @@ def Scope "Fleet" (
         {
             def Xform "part0_core_hull_65"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.9], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 0.0, -0.9], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 1.1, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [0.0, -1.1, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [-3.5, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 1.1, "hv": 0.9, "cls": 1}, {"c": [4.9, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.5, "hv": 0.5, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -896,6 +935,9 @@ def Scope "Fleet" (
 
             def Xform "part1_engine_67"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [-1.0, 0.95, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, -0.95, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, 0.95], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, -0.95], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [0.0, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.95, "hv": 0.95, "cls": 2}, {"c": [-3.0, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.55, "hv": 0.55, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -959,6 +1001,9 @@ def Scope "Fleet" (
 
             def Xform "part2_fuel_tank_73"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.35, "cls": 2}, {"c": [0.35, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [-0.35, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [0.0, 0.35, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}, {"c": [0.0, -0.35, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -1022,6 +1067,9 @@ def Scope "Fleet" (
 
             def Xform "part3_wing_82"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.475, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.975, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -1088,6 +1136,9 @@ def Scope "Fleet" (
 
             def Xform "part4_wing_90"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.475, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.975, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -1154,6 +1205,9 @@ def Scope "Fleet" (
 
             def Xform "part5_heavy_cannon_98"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [2.72, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -1217,6 +1271,9 @@ def Scope "Fleet" (
 
             def Xform "part6_heavy_cannon_105"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [2.72, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -1280,6 +1337,9 @@ def Scope "Fleet" (
 
             def Xform "part7_antenna_113"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.1], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.15, "cls": 2}, {"c": [0.15, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [-0.15, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [0.0, 0.15, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, -0.15, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, 0.0, 1.114640565652526], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.03, "hv": 0.03, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 812 (
                     interpolation = "constant"
                 )
@@ -1357,6 +1417,9 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (2.04, 1.1, 0.41000000000000003) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
@@ -1366,7 +1429,7 @@ def Scope "Fleet" (
                 double primvars:kitmash:relief = 0.85 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -1388,16 +1451,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (1.404198188598828, 1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#98" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.549 (
+                double primvars:kitmash:relief = 0.531 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -1419,16 +1485,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (1.404198188598828, 1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#98" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.549 (
+                double primvars:kitmash:relief = 0.531 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -1450,6 +1519,9 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (2.04, -1.1, 0.41000000000000003) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
@@ -1459,7 +1531,7 @@ def Scope "Fleet" (
                 double primvars:kitmash:relief = 0.85 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 3 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -1481,16 +1553,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (1.404198188598828, -1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#105" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.549 (
+                double primvars:kitmash:relief = 0.531 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 3 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -1512,16 +1587,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (1.404198188598828, -1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#105" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.549 (
+                double primvars:kitmash:relief = 0.531 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 3 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -1649,7 +1727,7 @@ def Scope "Fleet" (
         string primvars:kitmash:stats = '{"parts": 10, "mass": 10604, "struts": 4, "hoses": 1}' (
             interpolation = "constant"
         )
-        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 23, "faction": "Feral"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#129"}, {"ev": "commit", "part": "engine", "part_id": "engine#131", "host_port": "core_hull#129/struct_M_1", "part_port": "engine#131/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#137", "host_port": "core_hull#129/struct_M_4", "part_port": "fuel_tank#137/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4610}}, {"ev": "commit", "part": "wing R", "part_id": "wing#146", "host_port": "core_hull#129/struct_M_2", "part_port": "wing#146/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3972}}, {"ev": "commit", "part": "wing L", "part_id": "wing#154", "host_port": "core_hull#129/struct_M_3", "part_port": "wing#154/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3335}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 56406, "cap": 36363, "struts": 1, "relief": 0.58, "moment_after": 23859}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#162", "host_port": "wing#146/mount_rail_1", "part_port": "heavy_cannon#162/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2005}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 56406, "cap": 36363, "struts": 1, "relief": 0.58, "moment_after": 23859}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#169", "host_port": "wing#154/mount_rail_1", "part_port": "heavy_cannon#169/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 675}}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.09}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#178", "host_port": "core_hull#129/struct_S_1", "part_port": "sensor_pod#178/struct_S_1", "metrics": {"strain": 0.09, "mass_left": 555}}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.092}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#185", "host_port": "core_hull#129/struct_S_2", "part_port": "sensor_pod#185/struct_S_1", "metrics": {"strain": 0.092, "mass_left": 435}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#191", "host_port": "core_hull#129/struct_S_3", "part_port": "antenna#191/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 395}}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
+        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 23, "faction": "Feral"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#129"}, {"ev": "commit", "part": "engine", "part_id": "engine#131", "host_port": "core_hull#129/struct_M_1", "part_port": "engine#131/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#137", "host_port": "core_hull#129/struct_M_4", "part_port": "fuel_tank#137/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4610}}, {"ev": "commit", "part": "wing R", "part_id": "wing#146", "host_port": "core_hull#129/struct_M_2", "part_port": "wing#146/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3972}}, {"ev": "commit", "part": "wing L", "part_id": "wing#154", "host_port": "core_hull#129/struct_M_3", "part_port": "wing#154/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3335}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 56406, "cap": 36363, "struts": 1, "relief": 0.55, "moment_after": 25278}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#162", "host_port": "wing#146/mount_rail_1", "part_port": "heavy_cannon#162/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2005}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 56406, "cap": 36363, "struts": 1, "relief": 0.55, "moment_after": 25278}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#169", "host_port": "wing#154/mount_rail_1", "part_port": "heavy_cannon#169/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 675}}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.09}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#178", "host_port": "core_hull#129/struct_S_1", "part_port": "sensor_pod#178/struct_S_1", "metrics": {"strain": 0.09, "mass_left": 555}}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.092}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#185", "host_port": "core_hull#129/struct_S_2", "part_port": "sensor_pod#185/struct_S_1", "metrics": {"strain": 0.092, "mass_left": 435}}, {"ev": "commit", "part": "antenna", "part_id": "antenna#191", "host_port": "core_hull#129/struct_S_3", "part_port": "antenna#191/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 395}}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
             interpolation = "constant"
         )
         double3 xformOp:translate = (0, 7.5, 0)
@@ -1659,6 +1737,9 @@ def Scope "Fleet" (
         {
             def Xform "part0_core_hull_129"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.9], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 0.0, -0.9], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 1.1, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [0.0, -1.1, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [-3.5, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 1.1, "hv": 0.9, "cls": 1}, {"c": [4.9, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.5, "hv": 0.5, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -1722,6 +1803,9 @@ def Scope "Fleet" (
 
             def Xform "part1_engine_131"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [-1.0, 0.95, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, -0.95, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, 0.95], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, -0.95], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [0.0, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.95, "hv": 0.95, "cls": 2}, {"c": [-3.0, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.55, "hv": 0.55, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -1785,6 +1869,9 @@ def Scope "Fleet" (
 
             def Xform "part2_fuel_tank_137"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.35, "cls": 2}, {"c": [0.35, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [-0.35, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [0.0, 0.35, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}, {"c": [0.0, -0.35, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -1848,6 +1935,9 @@ def Scope "Fleet" (
 
             def Xform "part3_wing_146"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.35, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.85, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -1914,6 +2004,9 @@ def Scope "Fleet" (
 
             def Xform "part4_wing_154"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.35, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.85, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -1980,6 +2073,9 @@ def Scope "Fleet" (
 
             def Xform "part5_heavy_cannon_162"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [2.2399999999999998, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2043,6 +2139,9 @@ def Scope "Fleet" (
 
             def Xform "part6_heavy_cannon_169"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [2.2399999999999998, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2106,6 +2205,9 @@ def Scope "Fleet" (
 
             def Xform "part7_sensor_pod_178"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.0], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.3096412643928156, "hv": 0.3096412643928156, "cls": 2}, {"c": [0.3096412643928156, 0.0, -0.45], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [-0.3096412643928156, 0.0, -0.45], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.3096412643928156, -0.45], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.3096412643928156, "hv": 0.45, "cls": 1}, {"c": [0.0, -0.3096412643928156, -0.45], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.3096412643928156, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.0, -0.85], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 0.3096412643928156, "hv": 0.3096412643928156, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2169,6 +2271,9 @@ def Scope "Fleet" (
 
             def Xform "part8_sensor_pod_185"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.0], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.31046299229398455, "hv": 0.31046299229398455, "cls": 2}, {"c": [0.31046299229398455, 0.0, -0.45], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [-0.31046299229398455, 0.0, -0.45], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.31046299229398455, -0.45], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.31046299229398455, "hv": 0.45, "cls": 1}, {"c": [0.0, -0.31046299229398455, -0.45], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.31046299229398455, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.0, -0.85], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 0.31046299229398455, "hv": 0.31046299229398455, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2232,6 +2337,9 @@ def Scope "Fleet" (
 
             def Xform "part9_antenna_191"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.1], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.15, "cls": 2}, {"c": [0.15, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [-0.15, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.05, "hv": 0.15, "cls": 2}, {"c": [0.0, 0.15, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, -0.15, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.05, "cls": 2}, {"c": [0.0, 0.0, 0.9691857575134344], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.03, "hv": 0.03, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2309,16 +2417,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (1.1356543837357052, 1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#162" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.577 (
+                double primvars:kitmash:relief = 0.552 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -2340,16 +2451,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (1.1356543837357052, -1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#169" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.577 (
+                double primvars:kitmash:relief = 0.552 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 3 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -2466,7 +2580,7 @@ def Scope "Fleet" (
         string primvars:kitmash:stats = '{"parts": 9, "mass": 10139, "struts": 3, "hoses": 1}' (
             interpolation = "constant"
         )
-        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 41, "faction": "Feral"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#193"}, {"ev": "commit", "part": "engine", "part_id": "engine#195", "host_port": "core_hull#193/struct_M_1", "part_port": "engine#195/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#202", "host_port": "core_hull#193/struct_M_4", "part_port": "fuel_tank#202/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4720}}, {"ev": "commit", "part": "wing R", "part_id": "wing#212", "host_port": "core_hull#193/struct_M_2", "part_port": "wing#212/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4120}}, {"ev": "commit", "part": "wing L", "part_id": "wing#221", "host_port": "core_hull#193/struct_M_3", "part_port": "wing#221/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3520}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 41860, "cap": 36363, "struts": 1, "relief": 0.59, "moment_after": 17107}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#230", "host_port": "wing#212/mount_rail_1", "part_port": "heavy_cannon#230/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2380}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 41860, "cap": 36363, "struts": 1, "relief": 0.59, "moment_after": 17107}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#238", "host_port": "wing#221/mount_rail_1", "part_port": "heavy_cannon#238/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1240}}, {"ev": "auction", "part": "radiator", "port": "core_hull#193/struct_S_1", "rivals": ["fuel tank"], "metrics": {"challenger": 3.0, "incumbent": 26.19, "scarcity": 0.25, "rivals": [{"part": "fuel tank", "prio": 9, "score": 2.91, "subtree": 1, "bid": 26.19}]}, "result": "incumbent_holds"}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.001}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#248", "host_port": "core_hull#193/struct_S_1", "part_port": "sensor_pod#248/struct_S_1", "metrics": {"strain": 0.001, "mass_left": 1120}}, {"ev": "commit", "part": "radiator", "part_id": "radiator#257", "host_port": "core_hull#193/struct_S_2", "part_port": "radiator#257/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 860}}, {"ev": "auction", "part": "antenna", "port": "core_hull#193/struct_S_3", "rivals": ["radiator"], "metrics": {"challenger": 2.39, "incumbent": 4.22, "scarcity": 0.5, "rivals": [{"part": "radiator", "prio": 3, "score": 2.81, "subtree": 1, "bid": 4.22}]}, "result": "incumbent_holds"}, {"ev": "auction", "part": "radiator", "port": "core_hull#193/struct_S_3", "rivals": ["radiator"], "metrics": {"challenger": 1.87, "incumbent": 4.22, "scarcity": 0.5, "rivals": [{"part": "radiator", "prio": 3, "score": 2.81, "subtree": 1, "bid": 4.22}]}, "result": "incumbent_holds"}, {"ev": "auction", "part": "sensor pod", "port": "core_hull#193/struct_S_3", "rivals": ["radiator"], "metrics": {"challenger": 1.8, "incumbent": 4.22, "scarcity": 0.5, "rivals": [{"part": "radiator", "prio": 3, "score": 2.81, "subtree": 1, "bid": 4.22}]}, "result": "incumbent_holds"}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
+        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 41, "faction": "Feral"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#193"}, {"ev": "commit", "part": "engine", "part_id": "engine#195", "host_port": "core_hull#193/struct_M_1", "part_port": "engine#195/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#202", "host_port": "core_hull#193/struct_M_4", "part_port": "fuel_tank#202/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4720}}, {"ev": "commit", "part": "wing R", "part_id": "wing#212", "host_port": "core_hull#193/struct_M_2", "part_port": "wing#212/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4120}}, {"ev": "commit", "part": "wing L", "part_id": "wing#221", "host_port": "core_hull#193/struct_M_3", "part_port": "wing#221/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3520}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing R", "moment_before": 41860, "cap": 36363, "struts": 1, "relief": 0.56, "moment_after": 18337}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#230", "host_port": "wing#212/mount_rail_1", "part_port": "heavy_cannon#230/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2380}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "cannon", "anchor": "core_hull", "metrics": {"joint": "wing L", "moment_before": 41860, "cap": 36363, "struts": 1, "relief": 0.56, "moment_after": 18337}, "result": "accepted"}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#238", "host_port": "wing#221/mount_rail_1", "part_port": "heavy_cannon#238/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1240}}, {"ev": "auction", "part": "radiator", "port": "core_hull#193/struct_S_1", "rivals": ["fuel tank"], "metrics": {"challenger": 3.0, "incumbent": 26.19, "scarcity": 0.25, "rivals": [{"part": "fuel tank", "prio": 9, "score": 2.91, "subtree": 1, "bid": 26.19}]}, "result": "incumbent_holds"}, {"ev": "adapter", "part": "sensor pod", "metrics": {"strain": 0.001}, "result": "collar_spawned"}, {"ev": "commit", "part": "sensor pod", "part_id": "sensor_pod#248", "host_port": "core_hull#193/struct_S_1", "part_port": "sensor_pod#248/struct_S_1", "metrics": {"strain": 0.001, "mass_left": 1120}}, {"ev": "commit", "part": "radiator", "part_id": "radiator#257", "host_port": "core_hull#193/struct_S_2", "part_port": "radiator#257/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 860}}, {"ev": "auction", "part": "antenna", "port": "core_hull#193/struct_S_3", "rivals": ["radiator"], "metrics": {"challenger": 2.39, "incumbent": 4.22, "scarcity": 0.5, "rivals": [{"part": "radiator", "prio": 3, "score": 2.81, "subtree": 1, "bid": 4.22}]}, "result": "incumbent_holds"}, {"ev": "auction", "part": "radiator", "port": "core_hull#193/struct_S_3", "rivals": ["radiator"], "metrics": {"challenger": 1.87, "incumbent": 4.22, "scarcity": 0.5, "rivals": [{"part": "radiator", "prio": 3, "score": 2.81, "subtree": 1, "bid": 4.22}]}, "result": "incumbent_holds"}, {"ev": "auction", "part": "sensor pod", "port": "core_hull#193/struct_S_3", "rivals": ["radiator"], "metrics": {"challenger": 1.8, "incumbent": 4.22, "scarcity": 0.5, "rivals": [{"part": "radiator", "prio": 3, "score": 2.81, "subtree": 1, "bid": 4.22}]}, "result": "incumbent_holds"}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}]' (
             interpolation = "constant"
         )
         double3 xformOp:translate = (0, 15, 0)
@@ -2476,6 +2590,9 @@ def Scope "Fleet" (
         {
             def Xform "part0_core_hull_193"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.9], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 0.0, -0.9], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 1.1, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [0.0, -1.1, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [-3.5, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 1.1, "hv": 0.9, "cls": 1}, {"c": [4.9, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.5, "hv": 0.5, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2539,6 +2656,9 @@ def Scope "Fleet" (
 
             def Xform "part1_engine_195"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [-1.0, 0.95, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, -0.95, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, 0.95], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, -0.95], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [0.0, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.95, "hv": 0.95, "cls": 2}, {"c": [-3.0, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.55, "hv": 0.55, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2602,6 +2722,9 @@ def Scope "Fleet" (
 
             def Xform "part2_fuel_tank_202"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.35, "cls": 2}, {"c": [0.35, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [-0.35, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [0.0, 0.35, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}, {"c": [0.0, -0.35, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2665,6 +2788,9 @@ def Scope "Fleet" (
 
             def Xform "part3_wing_212"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.3, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.8, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2731,6 +2857,9 @@ def Scope "Fleet" (
 
             def Xform "part4_wing_221"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.3, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.8, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2797,6 +2926,9 @@ def Scope "Fleet" (
 
             def Xform "part5_heavy_cannon_230"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [1.92, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2860,6 +2992,9 @@ def Scope "Fleet" (
 
             def Xform "part6_heavy_cannon_238"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [1.92, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2923,6 +3058,9 @@ def Scope "Fleet" (
 
             def Xform "part7_sensor_pod_248"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.0], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.280399116976695, "hv": 0.280399116976695, "cls": 2}, {"c": [0.280399116976695, 0.0, -0.45], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [-0.280399116976695, 0.0, -0.45], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.02, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.280399116976695, -0.45], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.280399116976695, "hv": 0.45, "cls": 1}, {"c": [0.0, -0.280399116976695, -0.45], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.280399116976695, "hv": 0.45, "cls": 1}, {"c": [0.0, 0.0, -0.85], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 0.280399116976695, "hv": 0.280399116976695, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -2986,6 +3124,9 @@ def Scope "Fleet" (
 
             def Xform "part8_radiator_257"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.0], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.15, "cls": 2}, {"c": [0.15, 0.0, -0.12], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.15, "cls": 2}, {"c": [-0.15, 0.0, -0.12], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.15, "cls": 2}, {"c": [0.0, 0.15, -0.12], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.12, "cls": 1}, {"c": [0.0, -0.15, -0.12], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.15, "hv": 0.12, "cls": 1}, {"c": [0.0, 0.0, -0.82], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 0.08, "hv": 0.8894089835464776, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3063,16 +3204,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (0.9434482758620689, 1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#230" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.591 (
+                double primvars:kitmash:relief = 0.562 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -3094,16 +3238,19 @@ def Scope "Fleet" (
                 double3 primvars:kitmash:b = (0.9434482758620689, -1.1, -0.9) (
                     interpolation = "constant"
                 )
+                int primvars:kitmash:face_cls = 2 (
+                    interpolation = "constant"
+                )
                 string primvars:kitmash:kind = "strut" (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:owner = "heavy_cannon#238" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.591 (
+                double primvars:kitmash:relief = 0.562 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 3 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -3225,7 +3372,7 @@ def Scope "Fleet" (
         string primvars:kitmash:stats = '{"parts": 10, "mass": 10031, "struts": 2, "hoses": 3}' (
             interpolation = "constant"
         )
-        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 101, "faction": "Feral"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#266"}, {"ev": "commit", "part": "engine", "part_id": "engine#268", "host_port": "core_hull#266/struct_M_1", "part_port": "engine#268/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#276", "host_port": "core_hull#266/struct_M_4", "part_port": "fuel_tank#276/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4753}}, {"ev": "commit", "part": "wing R", "part_id": "wing#287", "host_port": "core_hull#266/struct_M_2", "part_port": "wing#287/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4191}}, {"ev": "commit", "part": "wing L", "part_id": "wing#297", "host_port": "core_hull#266/struct_M_3", "part_port": "wing#297/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3628}}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#307", "host_port": "wing#287/mount_rail_1", "part_port": "heavy_cannon#307/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2678}}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#316", "host_port": "wing#297/mount_rail_1", "part_port": "heavy_cannon#316/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1728}}, {"ev": "commit", "part": "reactor", "part_id": "reactor#328", "host_port": "core_hull#266/struct_S_1", "part_port": "reactor#328/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1308}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "turret", "anchor": "core_hull", "metrics": {"joint": "turret", "moment_before": 2045, "cap": 1818, "struts": 1, "relief": 0.35, "moment_after": 1329}, "result": "accepted"}, {"ev": "commit", "part": "turret", "part_id": "turret#338", "host_port": "core_hull#266/struct_S_2", "part_port": "turret#338/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1138}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "turret", "anchor": "core_hull", "metrics": {"joint": "turret", "moment_before": 1932, "cap": 1818, "struts": 1, "relief": 0.35, "moment_after": 1256}, "result": "accepted"}, {"ev": "commit", "part": "turret", "part_id": "turret#347", "host_port": "core_hull#266/struct_S_3", "part_port": "turret#347/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 968}}, {"ev": "channel_graph", "metrics": {"nodes": 16, "edges": 50, "conduits": ["fuel", "high_volt"], "seg_pruned": 46, "clear_pruned": 0}}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}, {"ev": "hose", "frm": "reactor", "to": "turret", "metrics": {"hops": 1, "leaps": 1, "supply_left": 2.2}}, {"ev": "hose", "frm": "reactor", "to": "turret", "metrics": {"hops": 2, "leaps": 2, "supply_left": 0.4, "loomed": 1}}]' (
+        string primvars:kitmash:trace = '[{"ev": "seed", "seed": 101, "faction": "Feral"}, {"ev": "commit", "part": "core_hull", "part_id": "core_hull#266"}, {"ev": "commit", "part": "engine", "part_id": "engine#268", "host_port": "core_hull#266/struct_M_1", "part_port": "engine#268/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 5600}}, {"ev": "commit", "part": "fuel tank", "part_id": "fuel_tank#276", "host_port": "core_hull#266/struct_M_4", "part_port": "fuel_tank#276/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4753}}, {"ev": "commit", "part": "wing R", "part_id": "wing#287", "host_port": "core_hull#266/struct_M_2", "part_port": "wing#287/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 4191}}, {"ev": "commit", "part": "wing L", "part_id": "wing#297", "host_port": "core_hull#266/struct_M_3", "part_port": "wing#297/struct_M_1", "metrics": {"strain": 0.0, "mass_left": 3628}}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#307", "host_port": "wing#287/mount_rail_1", "part_port": "heavy_cannon#307/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 2678}}, {"ev": "commit", "part": "cannon", "part_id": "heavy_cannon#316", "host_port": "wing#297/mount_rail_1", "part_port": "heavy_cannon#316/mount_rail_1", "metrics": {"strain": 0.0, "mass_left": 1728}}, {"ev": "commit", "part": "reactor", "part_id": "reactor#328", "host_port": "core_hull#266/struct_S_1", "part_port": "reactor#328/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1308}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "turret", "anchor": "core_hull", "metrics": {"joint": "turret", "moment_before": 2045, "cap": 1818, "struts": 1, "relief": 0.81, "moment_after": 397}, "result": "accepted"}, {"ev": "commit", "part": "turret", "part_id": "turret#338", "host_port": "core_hull#266/struct_S_2", "part_port": "turret#338/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 1138}}, {"ev": "repair", "cause": "moment_over_cap", "op": "spawn_strut", "target": "turret", "anchor": "core_hull", "metrics": {"joint": "turret", "moment_before": 1932, "cap": 1818, "struts": 1, "relief": 0.81, "moment_after": 375}, "result": "accepted"}, {"ev": "commit", "part": "turret", "part_id": "turret#347", "host_port": "core_hull#266/struct_S_3", "part_port": "turret#347/struct_S_1", "metrics": {"strain": 0.0, "mass_left": 968}}, {"ev": "channel_graph", "metrics": {"nodes": 16, "edges": 50, "conduits": ["fuel", "high_volt"], "seg_pruned": 46, "clear_pruned": 0}}, {"ev": "hose", "frm": "fuel tank", "to": "engine", "metrics": {"hops": 4, "leaps": 0, "supply_left": 1.8}}, {"ev": "hose", "frm": "reactor", "to": "turret", "metrics": {"hops": 1, "leaps": 1, "supply_left": 2.2}}, {"ev": "hose", "frm": "reactor", "to": "turret", "metrics": {"hops": 2, "leaps": 2, "supply_left": 0.4, "loomed": 1}}]' (
             interpolation = "constant"
         )
         double3 xformOp:translate = (0, 22.5, 0)
@@ -3235,6 +3382,9 @@ def Scope "Fleet" (
         {
             def Xform "part0_core_hull_266"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.9], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 0.0, -0.9], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 1.1, "cls": 2}, {"c": [0.0, 1.1, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [0.0, -1.1, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 3.5, "hv": 0.9, "cls": 2}, {"c": [-3.5, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 1.1, "hv": 0.9, "cls": 1}, {"c": [4.9, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.5, "hv": 0.5, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3298,6 +3448,9 @@ def Scope "Fleet" (
 
             def Xform "part1_engine_268"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [-1.0, 0.95, 0.0], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, -0.95, 0.0], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, 0.95], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [-1.0, 0.0, -0.95], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.95, "cls": 2}, {"c": [0.0, 0.0, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.95, "hv": 0.95, "cls": 2}, {"c": [-3.0, 0.0, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.55, "hv": 0.55, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3361,6 +3514,9 @@ def Scope "Fleet" (
 
             def Xform "part2_fuel_tank_276"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.35, "cls": 2}, {"c": [0.35, 0.0, 0.05], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [-0.35, 0.0, 0.05], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.35, "cls": 2}, {"c": [0.0, 0.35, 0.05], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}, {"c": [0.0, -0.35, 0.05], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.35, "hv": 0.06, "cls": 2}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3424,6 +3580,9 @@ def Scope "Fleet" (
 
             def Xform "part3_wing_287"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.25, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.75, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3490,6 +3649,9 @@ def Scope "Fleet" (
 
             def Xform "part4_wing_297"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.25, 0.17], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.17], "n": [0.0, 0.0, -1.0], "u": [1.0, 0.0, 0.0], "hu": 1.1, "hv": 0.25, "cls": 2}, {"c": [1.1, 0.25, 0.0], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [-1.1, 0.25, 0.0], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.17, "hv": 0.25, "cls": 1}, {"c": [0.0, 1.25, 0.11], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 1.0, "hv": 0.75, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3556,6 +3718,9 @@ def Scope "Fleet" (
 
             def Xform "part5_heavy_cannon_307"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [1.6, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3619,6 +3784,9 @@ def Scope "Fleet" (
 
             def Xform "part6_heavy_cannon_316"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.6], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.3, "cls": 2}, {"c": [0.65, 0.0, 0.35], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [-0.65, 0.0, 0.35], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.25, "hv": 0.3, "cls": 2}, {"c": [0.0, 0.3, 0.35], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [0.0, -0.3, 0.35], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.65, "hv": 0.25, "cls": 1}, {"c": [1.6, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.12, "hv": 0.12, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3682,6 +3850,9 @@ def Scope "Fleet" (
 
             def Xform "part7_reactor_328"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.0], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.25, "cls": 2}, {"c": [0.25, 0.0, -0.07], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.07, "hv": 0.25, "cls": 2}, {"c": [-0.25, 0.0, -0.07], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.07, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, -0.07], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.07, "cls": 2}, {"c": [0.0, -0.25, -0.07], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.07, "cls": 2}, {"c": [0.3, 0.0, -0.5048395465448695], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.04, "hv": 0.4348395465448695, "cls": 1}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3745,6 +3916,9 @@ def Scope "Fleet" (
 
             def Xform "part8_turret_338"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.35], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.25, "cls": 2}, {"c": [0.25, 0.0, 0.2], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.15, "hv": 0.25, "cls": 2}, {"c": [-0.25, 0.0, 0.2], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.15, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, 0.2], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.15, "cls": 1}, {"c": [0.0, -0.25, 0.2], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.15, "cls": 1}, {"c": [1.043179955820239, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.06, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3808,6 +3982,9 @@ def Scope "Fleet" (
 
             def Xform "part9_turret_347"
             {
+                string primvars:kitmash:anchor_faces = '[{"c": [0.0, 0.0, 0.35], "n": [0.0, 0.0, 1.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.25, "cls": 2}, {"c": [0.25, 0.0, 0.2], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.15, "hv": 0.25, "cls": 2}, {"c": [-0.25, 0.0, 0.2], "n": [-1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.15, "hv": 0.25, "cls": 2}, {"c": [0.0, 0.25, 0.2], "n": [0.0, 1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.15, "cls": 1}, {"c": [0.0, -0.25, 0.2], "n": [0.0, -1.0, 0.0], "u": [1.0, 0.0, 0.0], "hu": 0.25, "hv": 0.15, "cls": 1}, {"c": [0.9743003936502694, 0.0, 0.42], "n": [1.0, 0.0, 0.0], "u": [0.0, 1.0, 0.0], "hu": 0.06, "hv": 0.06, "cls": 0}]' (
+                    interpolation = "constant"
+                )
                 int primvars:kitmash:era = 977 (
                     interpolation = "constant"
                 )
@@ -3875,14 +4052,17 @@ def Scope "Fleet" (
             def BasisCurves "strut0"
             {
                 int[] curveVertexCounts = [2]
-                point3f[] points = [(0.9907289, 4.656363e-18, -1.2736843), (0.9907289, 4.656363e-18, -0.9)]
+                point3f[] points = [(0.9907289, 4.656363e-18, -1.2736843), (0.9907289, 1.1, -0.9)]
                 double3 primvars:kitmash:a = (0.9907289299290415, 4.656363014464061e-18, -1.2736842105263158) (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:anchor = "core_hull" (
                     interpolation = "constant"
                 )
-                double3 primvars:kitmash:b = (0.9907289299290415, 4.656363014464061e-18, -0.9) (
+                double3 primvars:kitmash:b = (0.9907289299290415, 1.1, -0.9) (
+                    interpolation = "constant"
+                )
+                int primvars:kitmash:face_cls = 2 (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:kind = "strut" (
@@ -3891,10 +4071,10 @@ def Scope "Fleet" (
                 string primvars:kitmash:owner = "turret#338" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.35 (
+                double primvars:kitmash:relief = 0.806 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"
@@ -3906,14 +4086,17 @@ def Scope "Fleet" (
             def BasisCurves "strut1"
             {
                 int[] curveVertexCounts = [2]
-                point3f[] points = [(3.0635397, 4.656363e-18, -1.2736843), (3.0635397, 4.656363e-18, -0.9)]
+                point3f[] points = [(3.0635397, 4.656363e-18, -1.2736843), (3.0635397, 1.1, -0.9)]
                 double3 primvars:kitmash:a = (3.0635396290724746, 4.656363014464061e-18, -1.273684210526316) (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:anchor = "core_hull" (
                     interpolation = "constant"
                 )
-                double3 primvars:kitmash:b = (3.0635396290724746, 4.656363014464061e-18, -0.9) (
+                double3 primvars:kitmash:b = (3.0635396290724746, 1.1, -0.9) (
+                    interpolation = "constant"
+                )
+                int primvars:kitmash:face_cls = 2 (
                     interpolation = "constant"
                 )
                 string primvars:kitmash:kind = "strut" (
@@ -3922,10 +4105,10 @@ def Scope "Fleet" (
                 string primvars:kitmash:owner = "turret#347" (
                     interpolation = "constant"
                 )
-                double primvars:kitmash:relief = 0.35 (
+                double primvars:kitmash:relief = 0.806 (
                     interpolation = "constant"
                 )
-                int primvars:kitmash:vol = -1 (
+                int primvars:kitmash:vol = 2 (
                     interpolation = "constant"
                 )
                 uniform token type = "linear"

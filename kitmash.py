@@ -115,6 +115,12 @@ class Part:
         s.supplies=[]; s.demands=[]; s.clearances=[]
         s.anchor_vols=None   # local AABBs where struts may weld;
                              # None = whole part anchorable (legacy)
+        s.anchor_faces=None  # P3: face-level anchor patches (refines vols).
+                             # list of make_face() dicts; None = fall back to
+                             # anchor_vols. A face carries an outward NORMAL and
+                             # an anchor_class (0 glass/no-weld, 1 secondary,
+                             # 2 primary load-bearing) — struts weld to a SURFACE
+                             # with orientation, not anywhere inside a box.
         s.com=np.zeros(3)
         # tree bookkeeping (set on commit)
         s.parent=None; s.children=[]
@@ -149,6 +155,55 @@ def joint_cap(ptype, cluster):
     if cluster: m*=2*RAIL_CLUSTER_BONUS; a*=2
     return m,a
 
+# P3 — face-level anchor patches. A face is a planar rectangular weld surface
+# in part-LOCAL space: centre c, outward unit normal n, an in-plane axis u
+# (v = n×u derived), half-extents hu/hv, and an anchor_class. The normal lets
+# the relief model reward a strut that pulls NORMAL-ON (tension/compression into
+# the surface) over one that SHEARS along it; the class lets a part forbid welds
+# to glass (cls 0) and prefer primary structure (cls 2) over secondary (cls 1).
+ANCHOR_CLASS_RELIEF = {2: 1.0, 1: 0.65}   # cls 0 yields NO candidate (no-weld)
+
+def make_face(c, n, hu, hv, cls=2, u=None):
+    # Fail loudly at AUTHORING. A degenerate normal would otherwise normalize to
+    # NaN, and a NaN candidate WINS a brace (best-is-None seeds it, and no later
+    # candidate beats NaN under `>`), poisoning the strut with NaN coords. With
+    # 11 families declaring faces by hand, a typo'd normal must crash, not creep.
+    # (Cassandra P3 C2c.)
+    n=np.asarray(n,float); nn=np.linalg.norm(n)
+    if nn<1e-9: raise ValueError(f"make_face: degenerate normal {n}")
+    n=n/nn
+    if u is None:
+        a=np.array([1.0,0,0]) if abs(n[0])<0.9 else np.array([0,1.0,0])
+        u=a-np.dot(a,n)*n
+    else:
+        u=np.asarray(u,float); u=u-np.dot(u,n)*n
+    uu=np.linalg.norm(u)
+    if uu<1e-9: raise ValueError(f"make_face: in-plane axis u parallel to n {n}")
+    u=u/uu
+    if cls not in (0,1,2): raise ValueError(f"make_face: bad anchor_class {cls}")
+    return dict(c=np.asarray(c,float),n=n,u=u,
+                hu=float(hu),hv=float(hv),cls=int(cls))
+
+def face_candidates(face, com):
+    """Nearest point ON the patch plus its two v-edge points (triangulation
+    still pays). Returns [(anchor_point, normal, cls), ...]; empty for cls 0."""
+    if face["cls"]==0: return []
+    c,n,u,hu,hv=face["c"],face["n"],face["u"],face["hu"],face["hv"]
+    v=np.cross(n,u)
+    to=com-c; ip=to-np.dot(to,n)*n
+    pu=float(np.clip(np.dot(ip,u),-hu,hu))
+    pv=float(np.clip(np.dot(ip,v),-hv,hv))
+    base=c+pu*u
+    pts=[base+pv*v, base+(-hv)*v, base+hv*v]   # nearest, then both v-edges
+    return [(p,n,face["cls"]) for p in pts]
+
+def xform_face(face, R, t):
+    """Local face -> world. Centre takes R and t; the normal and in-plane axis
+    are directions (R only); R is a pure rotation so the extents survive."""
+    return dict(c=xform(face["c"][None],R,t)[0],
+                n=R@face["n"], u=R@face["u"],
+                hu=face["hu"], hv=face["hv"], cls=face["cls"])
+
 # --------------------------------------------------------------- generators
 def gen_hull(fc, seed=0, scale=1.0):
     rng=random.Random(seed)
@@ -169,6 +224,17 @@ def gen_hull(fc, seed=0, scale=1.0):
         Port([ 2.6,0,-H/2],[0,0,-1],[1,0,0],"struct_S",0.30,0,prio=3)]
     g=[Grommet([x,0,H/2-0.15],"fuel") for x in (-L/2+0.3,-1.0,1.0,1.8,L/2-0.6)]
     p.grommets=g; p.gedges=[(i,i+1) for i in range(len(g)-1)]
+    # P3 — the hull is the universal strut anchor; declare its weldable
+    # SURFACES. Deck/belly/flanks are primary structure (cls 2); the +x nose
+    # cone is aerodynamic glass (cls 0 — a strut may never weld to it). Before
+    # P3 a brace could land anywhere in the whole box, nose included.
+    p.anchor_faces=[
+        make_face([0,0, H/2],[0,0, 1],L/2,W/2,2,u=[1,0,0]),   # top deck
+        make_face([0,0,-H/2],[0,0,-1],L/2,W/2,2,u=[1,0,0]),   # belly
+        make_face([0, W/2,0],[0, 1,0],L/2,H/2,2,u=[1,0,0]),   # flank R
+        make_face([0,-W/2,0],[0,-1,0],L/2,H/2,2,u=[1,0,0]),   # flank L
+        make_face([-L/2,0,0],[-1,0,0],W/2,H/2,1,u=[0,1,0]),   # aft bulkhead (secondary)
+        make_face([L/2+1.4,0,0],[1,0,0],0.5,0.5,0,u=[0,1,0])] # nose cone: GLASS
     return p.finalize()
 
 def gen_tank(fc, seed=0):
@@ -181,6 +247,15 @@ def gen_tank(fc, seed=0):
     p.ports=[Port([0,0,0],[0,0,-1],[1,0,0],"struct_M",0.8,1)]
     p.grommets=[Grommet([0,0,0.1],"fuel"),Grommet([0.6,0,0.55],"fuel")]
     p.gedges=[(0,1)]; p.supplies=[["fuel",3.0]]
+    # P3 — anchorable surfaces. The base flange (box 0.7×0.7×0.12 centred at
+    # [0,0,0.05]) is primary structure: struts weld to its top face, four sides.
+    # The cylindrical tank body is a pressure vessel — not a weld surface.
+    p.anchor_faces=[
+        make_face([0,0,0.11],[0,0, 1],0.35,0.35,2,u=[1,0,0]),  # flange top cls-2
+        make_face([0.35,0,0.05],[1,0,0],0.06,0.35,2,u=[0,1,0]),# flange +x side cls-2
+        make_face([-0.35,0,0.05],[-1,0,0],0.06,0.35,2,u=[0,1,0]),# flange -x side cls-2
+        make_face([0,0.35,0.05],[0,1,0],0.35,0.06,2,u=[1,0,0]),# flange +y side cls-2
+        make_face([0,-0.35,0.05],[0,-1,0],0.35,0.06,2,u=[1,0,0])]# flange -y side cls-2
     return p.finalize()
 
 def gen_engine(fc, seed=0, size=1.0):
@@ -194,9 +269,20 @@ def gen_engine(fc, seed=0, size=1.0):
     p.demands=[["fuel",1.2*size]]
     p.thrust_axial=True
     p.clearances=[(np.array([-6.5,-0.9,-0.9]),np.array([-2.3,0.9,0.9]))]
-    # anchorable: the casing only — never weld to the glow nozzle
-    p.anchor_vols=[(np.array([-2.0,-0.95*size,-0.95*size]),
-                    np.array([ 0.0, 0.95*size, 0.95*size]))]
+    # P3 — anchorable surfaces. The casing (x∈[-2.0, 0.0]) is primary structure;
+    # its four barrel-sides are cls-2 weld faces. The forward mating flange at x=0
+    # is cls-2. The glow nozzle (x∈[-3.0,-2.0]; the -x cone of fc["glow"] colour)
+    # is GLASS — cls-0, never weldable. anchor_vols kept for legacy consumers.
+    s=0.95*size   # casing radius (max radius of main cone)
+    p.anchor_vols=[(np.array([-2.0,-s,-s]),np.array([0.0,s,s]))]
+    p.anchor_faces=[
+        make_face([-1.0, s,0],[ 0, 1,0],1.0,s,2,u=[1,0,0]),  # casing +y barrel cls-2
+        make_face([-1.0,-s,0],[ 0,-1,0],1.0,s,2,u=[1,0,0]),  # casing -y barrel cls-2
+        make_face([-1.0,0, s],[ 0,0, 1],1.0,s,2,u=[1,0,0]),  # casing +z barrel cls-2
+        make_face([-1.0,0,-s],[ 0,0,-1],1.0,s,2,u=[1,0,0]),  # casing -z barrel cls-2
+        make_face([0.0, 0,0],[1,0,0],s,s,2,u=[0,1,0]),        # fwd flange cls-2
+        make_face([-3.0,0,0],[-1,0,0],0.55*size,0.55*size,0,  # glow nozzle: GLASS
+                  u=[0,1,0])]
     return p.finalize()
 
 def gen_wing(fc, seed=0, span=3.2, hand=1):
@@ -214,6 +300,19 @@ def gen_wing(fc, seed=0, span=3.2, hand=1):
                    prio=8,sym=1,cluster="railA")]
     p.grommets=[Grommet([0,0.2,0.12],"fuel"),Grommet([0,y-0.4,0.12],"fuel")]
     p.gedges=[(0,1)]
+    # P3 — anchorable surfaces. The root spar (box 2.2×0.5×0.34, centred at
+    # [0, 0.25, 0]) is primary load-bearing structure — top/bottom faces cls-2;
+    # +x/-x chord faces cls-1 (secondary). The wing panel proper (2.0×span×0.22)
+    # is a thin aerofoil shell — cls-0, never weld to the panel skin.
+    # Handedness matters for which chord face faces outboard vs inboard, but the
+    # root-spar faces are symmetric about the port-axis (y=0), so no hand flip.
+    p.anchor_faces=[
+        make_face([0,0.25, 0.17],[0,0, 1],1.1,0.25,2,u=[1,0,0]), # root top cls-2
+        make_face([0,0.25,-0.17],[0,0,-1],1.1,0.25,2,u=[1,0,0]), # root belly cls-2
+        make_face([ 1.1,0.25,0],[ 1,0,0],0.17,0.25,1,u=[0,1,0]),# root +x chord cls-1
+        make_face([-1.1,0.25,0],[-1,0,0],0.17,0.25,1,u=[0,1,0]),# root -x chord cls-1
+        make_face([0,0.5+span/4,0.11],[0,0,1],1.0,span/4,0,      # wing panel: GLASS
+                  u=[1,0,0])]
     return p.finalize()
 
 def gen_cannon(fc, seed=0, heavy=1.0):
@@ -227,6 +326,17 @@ def gen_cannon(fc, seed=0, heavy=1.0):
     p.ports=[Port([-0.5,0,0.1],[0,0,-1],up,"mount_rail",0.4,1,sym=1,cluster="railA"),
              Port([ 0.5,0,0.1],[0,0,-1],up,"mount_rail",0.4,1,sym=1,cluster="railA")]
     p.com=np.array([1.2*heavy,0,0.4])
+    # P3 — anchorable surfaces. The mount block (box 1.3×0.6×0.5 at [0,0,0.35],
+    # so x∈[-0.65,0.65], y∈[-0.3,0.3], z∈[0.1,0.6]) is primary structure;
+    # its four sides and top are cls-2. The barrel is a gun tube — GLASS cls-0.
+    p.anchor_faces=[
+        make_face([0,0,0.6],[0,0, 1],0.65,0.3,2,u=[1,0,0]),     # block top cls-2
+        make_face([0.65,0,0.35],[1,0,0],0.25,0.3,2,u=[0,1,0]),  # block +x side cls-2
+        make_face([-0.65,0,0.35],[-1,0,0],0.25,0.3,2,u=[0,1,0]),# block -x side cls-2
+        make_face([0,0.3,0.35],[0,1,0],0.65,0.25,1,u=[1,0,0]),  # block +y face cls-1
+        make_face([0,-0.3,0.35],[0,-1,0],0.65,0.25,1,u=[1,0,0]),# block -y face cls-1
+        make_face([1.6*heavy,0,0.42],[1,0,0],0.12,0.12,0,        # barrel tip: GLASS
+                  u=[0,1,0])]
     return p.finalize()
 
 def gen_antenna(fc, seed=0):
@@ -236,8 +346,17 @@ def gen_antenna(fc, seed=0):
     v,f=cyl(0.05,0.02,h); p.add(xform(v,np.eye(3),[0,0,h/2]),f)
     v,f=box(0.3,0.3,0.1); p.add(xform(v,np.eye(3),[0,0,0.05]),f,fc["dark"])
     p.ports=[Port([0,0,0],[0,0,-1],[1,0,0],"struct_S",0.30,1)]
-    # anchorable: the base box only — the mast is a whip, not a wall
+    # P3 — anchorable surfaces. Base box (0.3×0.3×0.1 at [0,0,0.05],
+    # so x∈[-0.15,0.15], y∈[-0.15,0.15], z∈[0.0,0.1]) is primary structure:
+    # top face cls-2, four sides cls-2. The mast is a whip — cls-0, no weld.
     p.anchor_vols=[(np.array([-0.15,-0.15,0.0]),np.array([0.15,0.15,0.1]))]
+    p.anchor_faces=[
+        make_face([0,0,0.1],[0,0,1],0.15,0.15,2,u=[1,0,0]),      # base top cls-2
+        make_face([ 0.15,0,0.05],[ 1,0,0],0.05,0.15,2,u=[0,1,0]),# base +x cls-2
+        make_face([-0.15,0,0.05],[-1,0,0],0.05,0.15,2,u=[0,1,0]),# base -x cls-2
+        make_face([0, 0.15,0.05],[0, 1,0],0.15,0.05,2,u=[1,0,0]),# base +y cls-2
+        make_face([0,-0.15,0.05],[0,-1,0],0.15,0.05,2,u=[1,0,0]),# base -y cls-2
+        make_face([0,0,h/2],[0,0,1],0.03,0.03,0,u=[1,0,0])]      # mast tip: GLASS
     return p.finalize()
 
 def gen_pod(fc, seed=0):
@@ -246,6 +365,18 @@ def gen_pod(fc, seed=0):
            faction=fc["name"],era=fc["era"],color=fc["accent"],label="sensor pod")
     v,f=cyl(r-0.02,r-0.02,0.8,seg=10); p.add(xform(v,np.eye(3),[0,0,-0.45]),f)
     p.ports=[Port([0,0,0],[0,0,1],[1,0,0],"struct_S",r,1)]
+    # P3 — anchorable surfaces. The sensor pod is a cylindrical pressure vessel;
+    # the mounting flange at z=0 (top) is the primary structural weld point cls-2.
+    # Four cardinal side faces at the pod's widest radius are cls-1 secondary.
+    # The bottom dome (z≈-0.85) is instrument glass — cls-0, never weldable.
+    rw=r-0.02   # actual cylinder radius
+    p.anchor_faces=[
+        make_face([0,0,0],[0,0,1],rw,rw,2,u=[1,0,0]),           # mounting flange cls-2
+        make_face([ rw,0,-0.45],[ 1,0,0],0.02,0.45,1,u=[0,1,0]),# +x barrel cls-1
+        make_face([-rw,0,-0.45],[-1,0,0],0.02,0.45,1,u=[0,1,0]),# -x barrel cls-1
+        make_face([0, rw,-0.45],[0, 1,0],rw,0.45,1,u=[1,0,0]),  # +y barrel cls-1
+        make_face([0,-rw,-0.45],[0,-1,0],rw,0.45,1,u=[1,0,0]),  # -y barrel cls-1
+        make_face([0,0,-0.85],[0,0,-1],rw,rw,0,u=[1,0,0])]      # bottom dome: GLASS
     return p.finalize()
 
 def gen_radiator(fc, seed=0):
@@ -259,9 +390,19 @@ def gen_radiator(fc, seed=0):
     p.ports=[Port([0,0,0],[0,0,1],[1,0,0],"struct_S",0.30,1)]
     p.clearances=[(np.array([-2.2,-w/2-0.5,-2.4]),
                    np.array([ 2.2, w/2+0.5,-0.25]))]
-    # anchorable: the mounting block only — the panel IS the glass
+    # P3 — anchorable surfaces. The mounting block (0.3×0.3×0.24 at [0,0,-0.12],
+    # so x∈[-0.15,0.15], y∈[-0.15,0.15], z∈[-0.24,0.0]) is primary structure.
+    # The radiating panel (0.16×w×1.4) IS the glass — cls-0. anchor_vols kept
+    # for legacy consumers that do not read anchor_faces.
     p.anchor_vols=[(np.array([-0.15,-0.15,-0.24]),
                     np.array([ 0.15, 0.15, 0.0]))]
+    p.anchor_faces=[
+        make_face([0,0,0],[0,0,1],0.15,0.15,2,u=[1,0,0]),         # block top cls-2
+        make_face([ 0.15,0,-0.12],[ 1,0,0],0.12,0.15,2,u=[0,1,0]),# block +x cls-2
+        make_face([-0.15,0,-0.12],[-1,0,0],0.12,0.15,2,u=[0,1,0]),# block -x cls-2
+        make_face([0, 0.15,-0.12],[0, 1,0],0.15,0.12,1,u=[1,0,0]),# block +y cls-1
+        make_face([0,-0.15,-0.12],[0,-1,0],0.15,0.12,1,u=[1,0,0]),# block -y cls-1
+        make_face([0,0,-0.82],[0,0,-1],0.08,w/2,0,u=[1,0,0])]     # panel face: GLASS
     return p.finalize()
 
 def gen_reactor(fc, seed=0):
@@ -277,6 +418,18 @@ def gen_reactor(fc, seed=0):
                 Grommet([0.36,0,-h-0.05],"high_volt",0.12)]
     p.gedges=[(0,1)]
     p.supplies=[["high_volt",4.0]]
+    # P3 — anchorable surfaces. The base plate (0.5×0.5×0.14 at [0,0,-0.07],
+    # so x∈[-0.25,0.25], y∈[-0.25,0.25], z∈[-0.14,0.0]) is primary structure.
+    # The reactor cylinder is a pressurised vessel — cls-1 (secondary weld only).
+    # No cls-0 glass on this part; the reactor is a forged pod, not an optic.
+    p.anchor_faces=[
+        make_face([0,0,0],[0,0,1],0.25,0.25,2,u=[1,0,0]),          # top plate cls-2
+        make_face([ 0.25,0,-0.07],[ 1,0,0],0.07,0.25,2,u=[0,1,0]),# plate +x cls-2
+        make_face([-0.25,0,-0.07],[-1,0,0],0.07,0.25,2,u=[0,1,0]),# plate -x cls-2
+        make_face([0, 0.25,-0.07],[0, 1,0],0.25,0.07,2,u=[1,0,0]),# plate +y cls-2
+        make_face([0,-0.25,-0.07],[0,-1,0],0.25,0.07,2,u=[1,0,0]),# plate -y cls-2
+        make_face([0.30,0,-h/2-0.07],[1,0,0],0.04,h/2,1,           # cylinder +x cls-1
+                  u=[0,1,0])]
     return p.finalize()
 
 def gen_turret(fc, seed=0):
@@ -292,6 +445,18 @@ def gen_turret(fc, seed=0):
     p.ports=[Port([0,0,0],[0,0,-1],[1,0,0],"struct_S",0.30,1)]
     p.grommets=[Grommet([0,0,0.12],"high_volt",0.1)]
     p.demands=[["high_volt",1.8]]
+    # P3 — anchorable surfaces. The turret base box (0.5×0.5×0.3 at [0,0,0.2],
+    # so x∈[-0.25,0.25], y∈[-0.25,0.25], z∈[0.05,0.35]) is primary structure.
+    # The barrel is a gun tube — GLASS cls-0 (barrel axis is roughly +x+z tilted,
+    # but the face declaration covers its muzzle tip as a no-weld zone).
+    p.anchor_faces=[
+        make_face([0,0,0.35],[0,0,1],0.25,0.25,2,u=[1,0,0]),       # box top cls-2
+        make_face([ 0.25,0,0.2],[ 1,0,0],0.15,0.25,2,u=[0,1,0]),  # box +x cls-2
+        make_face([-0.25,0,0.2],[-1,0,0],0.15,0.25,2,u=[0,1,0]),  # box -x cls-2
+        make_face([0, 0.25,0.2],[0, 1,0],0.25,0.15,1,u=[1,0,0]),  # box +y cls-1
+        make_face([0,-0.25,0.2],[0,-1,0],0.25,0.15,1,u=[1,0,0]),  # box -y cls-1
+        make_face([barrel+0.2,0,0.42],[1,0,0],0.06,0.06,0,         # barrel tip: GLASS
+                  u=[0,1,0])]
     return p.finalize()
 
 def gen_cap(fc, seed=0):
@@ -299,6 +464,13 @@ def gen_cap(fc, seed=0):
            era=fc["era"],color=fc["dark"],label="blanking cap")
     v,f=cyl(0.22,0.2,0.12,seg=8); p.add(xform(v,np.eye(3),[0,0,-0.06]),f)
     p.ports=[Port([0,0,0],[0,0,-1],[1,0,0],"struct_S",0.30,1)]
+    # P3 — anchorable surfaces. A blanking cap is a sheet-metal disc; the only
+    # honest weld surface is the mounting ring face at z=0 (cls-2 primary).
+    # The domed underside at z=-0.12 is a pressed shell — cls-0, no weld.
+    p.anchor_faces=[
+        make_face([0,0,0],[0,0,1],0.22,0.22,2,u=[1,0,0]),  # mounting ring cls-2
+        make_face([0,0,-0.12],[0,0,-1],0.20,0.20,0,         # dome underside: GLASS
+                  u=[1,0,0])]
     return p.finalize()
 
 # ---------------------------------------------------------------- assembler
@@ -461,7 +633,35 @@ class Assembler:
         legality check."""
         best=None; viable=[]
         node=root_side
+        def consider(cand):
+            nonlocal best
+            if s.director is not None: viable.append(cand)
+            if best is None or cand["relief"]>best["relief"]+1e-9 or \
+               (abs(cand["relief"]-best["relief"])<1e-9 and cand["L"]<best["L"]):
+                best=cand
         while node is not None:
+            wf=getattr(node,"w_anchor_faces",None)
+            if wf is not None:
+                # P3 face path — weld to a declared SURFACE. Relief gains a
+                # normal-alignment term (pull-normal-on beats shear) and an
+                # anchor_class strength factor; cls-0 faces yield no candidate.
+                for fi,face in enumerate(wf):
+                    for anchor,fn,cls in face_candidates(face,com):
+                        d=np.linalg.norm(anchor-com)
+                        # NaN comparisons are False, so a NaN d would slip the
+                        # <0.15 guard and a NaN-relief brace would win (Cassandra
+                        # P3 C2c). make_face blocks the source; this is the net.
+                        if not (d>=0.15): continue
+                        sdir=(anchor-com)/d
+                        geom=0.35+0.5*np.linalg.norm(np.cross(sdir,jaxis))
+                        align=0.6+0.4*abs(float(np.dot(sdir,fn)))  # [0.6,1.0]
+                        relief=geom*align*ANCHOR_CLASS_RELIEF[cls]
+                        consider(dict(a=com,b=anchor,relief=float(relief),
+                                      anchor_part=node.label,L=float(d),
+                                      vol=fi,face_cls=cls))
+                node=node.parent
+                continue
+            # legacy AABB path — BYTE-IDENTICAL to v0.8 for non-face parts
             if getattr(node,"w_anchor",None) is not None:
                 vols=list(enumerate(node.w_anchor))
             else:
@@ -478,12 +678,8 @@ class Assembler:
                     if d<0.15: continue
                     sdir=(anchor-com)/d
                     relief=0.35+0.5*np.linalg.norm(np.cross(sdir,jaxis))
-                    cand=dict(a=com,b=anchor,relief=float(relief),
-                              anchor_part=node.label,L=float(d),vol=vi)
-                    if s.director is not None: viable.append(cand)
-                    if best is None or relief>best["relief"]+1e-9 or \
-                       (abs(relief-best["relief"])<1e-9 and d<best["L"]):
-                        best=cand
+                    consider(dict(a=com,b=anchor,relief=float(relief),
+                                  anchor_part=node.label,L=float(d),vol=vi))
             node=node.parent
         # on_repair_choice (3b): PROMOTED — director-gated, rng-free,
         # reorder-only. The legacy `best`-accumulator above remains the
@@ -584,6 +780,10 @@ class Assembler:
                          for b in (lo[1],hi[1]) for cc in (lo[2],hi[2])]),
                          prop["R"],prop["t"])
                 part.w_anchor.append((c8.min(0),c8.max(0)))
+        part.w_anchor_faces=None            # P3: faces -> world (preferred path)
+        if part.anchor_faces is not None:
+            part.w_anchor_faces=[xform_face(fa,prop["R"],prop["t"])
+                                 for fa in part.anchor_faces]
         part.parent=prop["host"]; part.jpos=prop["jpos"]
         part.jaxis=prop["jaxis"]; part.jtype=prop["jtype"]
         part.jcluster=prop["jcluster"]
@@ -609,7 +809,8 @@ class Assembler:
             s.strut_segs.append(dict(kind="strut",
                 a=[float(x) for x in a],b=[float(x) for x in b],
                 owner=part.uid,relief=round(float(rep["relief"]),3),
-                anchor=rep["anchor_part"],vol=rep.get("vol",-1)))
+                anchor=rep["anchor_part"],vol=rep.get("vol",-1),
+                face_cls=rep.get("face_cls")))   # P3: which class took the weld
         for m in prop["mates"]: m[3].filled=True
         for pl in prop["plugs"]: pl.filled=True
         if prop["strain"]>0.001:
@@ -657,6 +858,8 @@ class Assembler:
         hull.w_anchor=None if hull.anchor_vols is None else \
             [(np.array(lo,float),np.array(hi,float))
              for lo,hi in hull.anchor_vols]
+        hull.w_anchor_faces=None if hull.anchor_faces is None else \
+            [xform_face(fa,np.eye(3),np.zeros(3)) for fa in hull.anchor_faces]
         allv=np.vstack([w[0] for w in hull.world])
         s.ledger.append((allv.min(0)-0.02,allv.max(0)+0.02,hull))
         s.placed.append(hull)

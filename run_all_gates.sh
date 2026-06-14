@@ -18,7 +18,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Python interpreter: defaults to python3, override with `PY=/path/to/python ./run_all_gates.sh`.
 # Needs numpy (core/director) and usd-core (the check-usd rung).
 PY="${PY:-python3}"
-ANCHOR_MD5="e6aeccfe352bba16f288785ea23e5bc3"
+# P3 re-baseline (v0.8.1): old e6aeccfe352bba16f288785ea23e5bc3 -> new below.
+# Hull weld-FACES replaced the whole-box anchor; strut endpoints + relief moved,
+# all 5 ships unchanged in parts/mass/struts and still legal+fueled.
+ANCHOR_MD5="80ddaccccc594b2a7cc8c7b40a129086"
 GATE_JSON="/tmp/kitmash_gate.json"
 
 cd "$HERE" || exit 2

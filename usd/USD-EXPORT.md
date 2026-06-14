@@ -47,8 +47,9 @@ the second host. The hython path needs nothing extra (Houdini ships `pxr`).
                                        silhouette,parent_id,host_port,part_port,
                                        join_strain}
                                      primvars:kitmash:gp:<key>           ← typed gen_params
+                                     primvars:kitmash:anchor_faces       ← P3 face patches (JSON string)
       /geo                   Mesh    faction-colored cartoon (the cached opinion)
-    /Struts/strut{i}         BasisCurves  kitmash:{owner,anchor,relief,vol,a,b}
+    /Struts/strut{i}         BasisCurves  kitmash:{owner,anchor,relief,vol,face_cls,a,b}
     /Struts/collar{i}        Xform        kitmash:{owner,r,strain,axis,up,pos}
     /Hoses/hose{i}           BasisCurves  kitmash:{ctype,hose_style,dia,kinds,pts}
     /OpenPorts/port{i}_<id>  Xform        kitmash:{port_id,port_type,port_size,
@@ -91,6 +92,15 @@ the second host. The hython path needs nothing extra (Houdini ships `pxr`).
    USD asset, then compose and compare it — never trust a green primvar pass
    alone.**
 
+6. **`anchor_faces` is a JSON string primvar (P3, additive).** Each part's
+   local-space face patches ride as `primvars:kitmash:anchor_faces` (String,
+   constant). Format: `"null"` or a JSON array of `{c, n, u, hu, hv, cls}`
+   objects (all float64 inside the JSON string — exact). A replacement asset
+   reads this primvar to inherit the face declaration without recomputing
+   geometry. `face_cls` (Int) on each strut records which anchor class took
+   the weld (−1 = AABB/legacy). The gate verifies both round-trip in
+   `verify_usd.py` (857 checks, 0 failures after this addition).
+
 ## Goblins found at first contact (do not relearn these)
 
 All three lived in the `pxr` API surface — exactly the pattern the Houdini port
@@ -113,7 +123,11 @@ host-agnostic extractors were never wrong.
 
 ## Status
 
-Verified green in **both** runtimes (usd-core 26.5, Houdini pxr 25.5): 810
-checks, cook test on all five ships, `fleet.json` byte-identical (the core was
-never touched — purely additive, like v0.7). `kitmash:schema_version =
-kitmash/0.6` — USD is additive over the Houdini export, not a new schema.
+v0.9 baseline: Verified green in **both** runtimes (usd-core 26.5, Houdini pxr
+25.5): 810 checks, cook test on all five ships, `fleet.json` byte-identical.
+`kitmash:schema_version = kitmash/0.6`.
+
+P3 addition (2026-06-14): `anchor_faces` + `face_cls` exported. **857 checks, 0
+failures** (usd-core 26.5). Houdini pxr re-verification deferred (requires
+hython session). The assembler decision path was not touched; canonical md5
+`80ddaccccc594b2a7cc8c7b40a129086` unchanged.

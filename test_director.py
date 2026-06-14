@@ -29,7 +29,10 @@ from director import (Director, make_brief, no_hard_overlaps, _family_of)
 
 
 # canonical regression anchor (handoff §2)
-ANCHOR_MD5 = "e6aeccfe352bba16f288785ea23e5bc3"
+# P3 re-baseline: e6aeccfe352bba16f288785ea23e5bc3 -> 80ddaccccc594b2a7cc8c7b40a129086
+# (hull weld-FACES replaced the whole-box anchor; strut endpoints + relief moved,
+#  topology unchanged). ANCHOR_STATS (parts/mass/struts) is invariant across P3.
+ANCHOR_MD5 = "80ddaccccc594b2a7cc8c7b40a129086"
 ANCHOR_STATS = (10, 9464, 3)
 
 

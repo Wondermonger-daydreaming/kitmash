@@ -101,6 +101,26 @@ def verify_ship(stage, ship_path, a, name):
         check(f"[{name}] {pid}.gp:* typed",
               set(typed) == set(gp) and all(gp_eq(typed[k], gp[k]) for k in gp),
               f"{typed} != {gp}")
+        # P3: anchor_faces round-trip — check via read_ship (r1["anchor_faces"])
+        py_af = a.placed[recs.index(r0)].anchor_faces
+        got_af = r1.get("anchor_faces")
+        if py_af is None:
+            check(f"[{name}] {pid}.anchor_faces None", got_af is None,
+                  f"expected None got {got_af!r}")
+        else:
+            ok = (got_af is not None and len(got_af) == len(py_af))
+            if ok:
+                for gf, pf in zip(got_af, py_af):
+                    ok = ok and (
+                        np.allclose(gf["c"], pf["c"], atol=1e-9) and
+                        np.allclose(gf["n"], pf["n"], atol=1e-9) and
+                        np.allclose(gf["u"], pf["u"], atol=1e-9) and
+                        abs(gf["hu"] - float(pf["hu"])) <= 1e-9 and
+                        abs(gf["hv"] - float(pf["hv"])) <= 1e-9 and
+                        int(gf["cls"]) == int(pf["cls"])
+                    )
+            check(f"[{name}] {pid}.anchor_faces ({len(py_af)} faces)", ok,
+                  f"got {got_af!r}")
 
     # ---- THE COOK TEST: compose the xform, compare to world geometry ----
     parts_prim = stage.GetPrimAtPath(f"{ship_path}/Parts")
@@ -138,10 +158,13 @@ def verify_ship(stage, ship_path, a, name):
               len(by_kind[kind]) == len(exp[kind]),
               f"{len(by_kind[kind])} != {len(exp[kind])}")
     for prim, s in zip(by_kind["strut"], exp["strut"]):
+        fc_raw = s.get("face_cls")
+        exp_fc = int(fc_raw) if fc_raw is not None else -1
         check(f"[{name}] strut {s['owner']}",
               ku._get_pv(prim, "owner") == s["owner"] and
               ku._get_pv(prim, "anchor") == s["anchor"] and
               int(ku._get_pv(prim, "vol")) == int(s.get("vol", -1)) and
+              int(ku._get_pv(prim, "face_cls")) == exp_fc and
               _num_eq(ku._get_pv(prim, "relief"), s["relief"], 1e-9) and
               np.allclose(list(ku._get_pv(prim, "a")), s["a"], atol=1e-9) and
               np.allclose(list(ku._get_pv(prim, "b")), s["b"], atol=1e-9))

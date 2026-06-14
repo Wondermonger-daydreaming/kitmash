@@ -34,8 +34,9 @@ loop.
 The canonical fleet MUST stay byte-identical. Before any edit:
 
 ```
-.venv/bin/python kitmash.py /tmp/x.json   →   md5 = e6aeccfe352bba16f288785ea23e5bc3
+.venv/bin/python kitmash.py /tmp/x.json   →   md5 = 80ddaccccc594b2a7cc8c7b40a129086
                                               GS-α stats = (10, 9464, 3)
+   (md5 re-baselined from e6aeccfe… by P3 hull weld-faces; stats invariant)
 ```
 
 `test_kitmash.py` is 8/8 green at baseline. **The hooks are a no-op when no
@@ -109,8 +110,9 @@ with a logged TODO and a one-line stub `on_repair_choice` that returns `None` �
 
 A new gate `test_director_noop()`:
 - run `kitmash.py` export with `director=None`, assert stats `(10,9464,3)` and
-  that the produced JSON md5 == `e6aeccfe352bba16f288785ea23e5bc3` (or compare
-  the in-memory export dict to a fresh `director=None` build — dict-equality).
+  that the produced JSON md5 == `80ddaccccc594b2a7cc8c7b40a129086` (P3 re-baseline
+  of `e6aeccfe…`; or compare the in-memory export dict to a fresh `director=None`
+  build — dict-equality).
 - build one ship WITH a trivial director whose `on_tie` returns `None`
   (identity) and `tie_eps=0` → assert byte-identical to `director=None`
   (proves the gate fires only on real ties and identity-reorder is inert).

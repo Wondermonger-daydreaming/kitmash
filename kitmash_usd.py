@@ -211,6 +211,21 @@ def write_usd(stage, a, ship_path, name="", plate="", offset=(0.0, 0.0, 0.0)):
         # gp_* attrs) so a DCC can bind without parsing JSON.
         for k, v in json.loads(rec["gen_params"]).items():
             _pv_scalar(api, f"gp:{k}", v)
+        # P3: anchor_faces — face-level weld patches as a JSON string primvar.
+        # Each face: {c:[3f], n:[3f], u:[3f], hu:f, hv:f, cls:i}.
+        # None = no declared faces (fall back to anchor_vols; whole-AABB for
+        # parts that declare neither). This is LOCAL-space (part frame) so any
+        # replacement asset inherits the exact same face geometry.
+        af = placed.anchor_faces
+        _pv(api, "anchor_faces", Sdf.ValueTypeNames.String,
+            "null" if af is None else json.dumps(
+                [{"c": [float(x) for x in f["c"]],
+                  "n": [float(x) for x in f["n"]],
+                  "u": [float(x) for x in f["u"]],
+                  "hu": float(f["hu"]),
+                  "hv": float(f["hv"]),
+                  "cls": int(f["cls"])}
+                 for f in af]))
         _bake_part_mesh(stage, path, placed)
 
     struts_scope = UsdGeom.Scope.Define(stage, ship_path.AppendChild("Struts"))
@@ -226,6 +241,10 @@ def write_usd(stage, a, ship_path, name="", plate="", offset=(0.0, 0.0, 0.0)):
             _pv(api, "anchor", Sdf.ValueTypeNames.String, st["anchor"])
             _pv(api, "relief", Sdf.ValueTypeNames.Double, float(st["relief"]))
             _pv(api, "vol", Sdf.ValueTypeNames.Int, int(st.get("vol", -1)))
+            # P3: face_cls = anchor class that took the weld (-1 = AABB/legacy)
+            fc_raw = st.get("face_cls")
+            _pv(api, "face_cls", Sdf.ValueTypeNames.Int,
+                int(fc_raw) if fc_raw is not None else -1)
             _pv_vec3d(api, "a", st["a"])
             _pv_vec3d(api, "b", st["b"])
             si += 1
@@ -317,6 +336,10 @@ def read_ship(stage, ship_path):
         rec["era"] = _get_pv(prim, "era")
         for k in ("mass", "silhouette", "join_strain"):
             rec[k] = _get_pv(prim, k)
+        # P3: recover anchor_faces JSON string; None if the primvar is absent or "null"
+        af_raw = _get_pv(prim, "anchor_faces")
+        rec["anchor_faces"] = None if (af_raw is None or af_raw == "null") \
+            else json.loads(af_raw)
         out.append(rec)
     return out
 

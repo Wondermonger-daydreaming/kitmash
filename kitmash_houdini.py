@@ -279,7 +279,16 @@ def write_part_geo(geo, part):
                     ("anchor_vols", json.dumps(
                         None if part.anchor_vols is None else
                         [[list(map(float, lo)), list(map(float, hi))]
-                         for lo, hi in part.anchor_vols]))):
+                         for lo, hi in part.anchor_vols])),
+                    ("anchor_faces", json.dumps(
+                        None if part.anchor_faces is None else
+                        [{"c": list(map(float, f["c"])),
+                          "n": list(map(float, f["n"])),
+                          "u": list(map(float, f["u"])),
+                          "hu": float(f["hu"]),
+                          "hv": float(f["hv"]),
+                          "cls": int(f["cls"])}
+                         for f in part.anchor_faces]))):
         geo.addAttrib(hou.attribType.Global, nm, "")
         geo.setGlobalAttribValue(nm, val)
     for nm, val in (("mass", float(part.mass)),
@@ -360,7 +369,7 @@ def write_geo(geo, a, name="", plate=""):
     for nm in ("mass", "silhouette", "join_strain", "port_size",
                "relief", "r", "strain", "dia", "width"):
         geo.addAttrib(hou.attribType.Point, nm, 0.0)
-    for nm in ("era", "port_gender", "port_sym", "vol"):
+    for nm in ("era", "port_gender", "port_sym", "vol", "face_cls"):
         geo.addAttrib(hou.attribType.Point, nm, 0)
     for nm in ("N", "up"):
         geo.addAttrib(hou.attribType.Point, nm, (0.0, 0.0, 0.0))
@@ -411,6 +420,9 @@ def write_geo(geo, a, name="", plate=""):
                 # on the Houdini side would lose the only record of WHERE a
                 # strut may grunge/dress against a fragile surface.
                 pt.setAttribValue("vol", int(st.get("vol", -1)))
+                # P3: face_cls = which anchor class took this weld (-1 = AABB/legacy)
+                fc_raw = st.get("face_cls")
+                pt.setAttribValue("face_cls", int(fc_raw) if fc_raw is not None else -1)
                 pt.setAttribValue("width", 0.06)
                 poly.addVertex(pt)
             g_strut.add(poly)
