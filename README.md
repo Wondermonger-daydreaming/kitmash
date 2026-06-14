@@ -113,9 +113,24 @@ Open (honestly unticked):
       `anchor_faces` ride out through both USD (`primvars:kitmash:anchor_faces`,
       `verify_usd` green) and Houdini (`s@anchor_faces` + `i@face_cls`).
       *Remaining:* live-hython sign-off on the Houdini face attrs.
-- [ ] **USD as referenced assets.** The current export carries a cartoon `/geo`
-      Mesh; the next step is `references` / `payload` to per-family part-asset
-      USDs (the USD twin of the part HDAs).
+- [x] **USD as referenced assets** — v0.9 (K2). Each ship part `references`
+      a shared canonical `usd/assets/<family>.usda` (the USD twin of the part
+      HDA) instead of re-embedding its body; the truth (gen_params,
+      `anchor_faces`, all primvars) stays on the instance. `verify_usd` 857→914,
+      green in usd-core and hython. *Next rung:* host-side rehydrate-on-load so a
+      viewer shows per-instance silhouettes (today usdview renders the canonical
+      prototype size); `UsdShade` material layer for faction color; a
+      registry-complete check that every family has a committed asset.
+- [ ] **Visibility — interactive demo + GIF polish.** The v0.9 trace GIFs
+      (`media/`, see "See it run") are a *bare-bones placeholder*: a minimal
+      numpy + Pillow software renderer (flat per-face shading, one fixed camera,
+      no anti-aliasing) built to prove legibility, not beauty — they are
+      regenerable generated-proof, not source of truth, and safe to rewrite
+      freely (Pillow is not a gate dependency). The headline visibility win is a
+      **hosted three.js trace-inspector** (GitHub Pages): generate a ship
+      in-browser, click a strut/part, surface the `ev/cause/metrics/result` that
+      produced it. Either polish the GIF renderer (supersample → AA, real
+      lighting, orbit) or build the interactive demo and cut nicer GIFs from it.
 - [ ] Higher-density routing follow-ups: bipartite demand matching, negotiation
       rounds, geometric min-distance for segregated parallel runs, per-ctype
       hose styling in the viewer.
