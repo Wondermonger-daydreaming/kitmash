@@ -91,5 +91,6 @@ python3 test_director.py
 
 `run_all_gates.sh` has named rungs (`check-core`, `check-director`, `check-usd`,
 `check-houdini`, `catalogue`); with no argument it runs the three public rungs.
-See `ARCHITECTURE.md` for the 12 invariants and `ARTIFACTS.md` for the artifact
-policy.
+See `ARCHITECTURE.md` for the 12 invariants, `ARTIFACTS.md` for the artifact
+policy, and `CROSS-BUREAU-SPLICE-STUDY.md` for a forensic study of how the
+bureaus breed hybrids (the changeling cross).
